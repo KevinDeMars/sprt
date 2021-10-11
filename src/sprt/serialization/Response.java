@@ -43,6 +43,20 @@ public class Response extends Message {
     }
 
     /**
+     * Constructs response using given values
+     * @param status response status
+     * @param function response function
+     * @param message response message
+     * @throws ValidationException if error with given values
+     * @throws NullPointerException if null parameter
+     */
+    public Response(Status status, String function, String message)
+            throws ValidationException
+    {
+        this(status, function, message, new CookieList());
+    }
+
+    /**
      * Constructs response by deserializing from the given input.
      *
      * The "SPRT/1.0 R " portion of the message must already be consumed.
