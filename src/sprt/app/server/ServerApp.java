@@ -16,14 +16,10 @@ import sprt.serialization.ValidationException;
 import java.lang.reflect.InvocationTargetException;
 
 public abstract class ServerApp {
-    // Current state
+    // Current state, or null for the empty state
     protected State state;
     // Keep last response sent for re-sending prompt for parameters
     protected Response lastResponseSent;
-
-    protected ServerApp(State initalState) {
-        this.state = initalState;
-    }
 
     public Response handleRequest(Request req) throws ValidationException {
         if (getState() == null) {
@@ -31,7 +27,7 @@ public abstract class ServerApp {
         }
 
         try {
-            var result = state.handleRequest(this, req, req.getParams());
+            var result = state.handleRequest(req);
             gotoState(result.nextState());
             return result.resp();
         } catch (InvocationTargetException | IllegalAccessException e) {
@@ -57,7 +53,8 @@ public abstract class ServerApp {
         // if no transition (state is same pointer) then do nothing
         if (nextState == state)
             return;
-        state.onExit();
+        if (state != null)
+            state.onExit();
         this.state = nextState;
         if (nextState != null)
             nextState.onEnter();

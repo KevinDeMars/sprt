@@ -26,7 +26,7 @@ public class Poll extends ServerApp {
             return "";
         }
 
-        public StateResult doHandleRequest(ServerApp app, Request req) throws ValidationException {
+        public StateResult doHandleRequest(Request req) throws ValidationException {
             var cookies = req.getCookieList();
             var fname = cookies.getValue("FName");
             var lname = cookies.getValue("LName");
@@ -46,7 +46,7 @@ public class Poll extends ServerApp {
         public String name() {
             return "NameStep";
         }
-        public StateResult doHandleRequest(ServerApp app, Request req, String fName, String lName) throws ValidationException {
+        public StateResult doHandleRequest(Request req, String fName, String lName) throws ValidationException {
             return new StateResult(
                     new FoodStep(fName, lName),
                     new CookieList().add("FName", fName).add("LName", lName)
@@ -78,7 +78,7 @@ public class Poll extends ServerApp {
             return fName + "'s Food mood> ";
         }
 
-        public StateResult doHandleRequest(ServerApp app, Request req, String foodMood) throws ValidationException {
+        public StateResult doHandleRequest(Request req, String foodMood) throws ValidationException {
             int repeat;
             var cookies = req.getCookieList();
             // create new cookie if needed
@@ -107,6 +107,6 @@ public class Poll extends ServerApp {
     }
 
     public Poll() {
-        super(new InitialStep());
+        gotoState(new InitialStep());
     }
 }

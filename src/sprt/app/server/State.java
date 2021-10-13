@@ -9,7 +9,6 @@
 package sprt.app.server;
 
 import sprt.serialization.Request;
-import sprt.serialization.ValidationException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -22,13 +21,13 @@ public abstract class State {
     protected void onEnter() {}
     protected void onExit() {}
 
-    StateResult handleRequest(ServerApp app, Request req, String[] params) throws ValidationException, InvocationTargetException, IllegalAccessException {
+    StateResult handleRequest(Request req) throws InvocationTargetException, IllegalAccessException {
+        var params = req.getParams();
         var method = getHandler(params);
         if (method.isPresent()) {
-            var realParams = new Object[params.length + 2];
-            System.arraycopy(params, 0, realParams, 2, params.length);
-            realParams[0] = app;
-            realParams[1] = req;
+            var realParams = new Object[params.length + 1];
+            System.arraycopy(params, 0, realParams, 1, params.length);
+            realParams[0] = req;
             return (StateResult) method.get().invoke(this, realParams);
         }
         else {
@@ -37,10 +36,9 @@ public abstract class State {
     }
 
     private Optional<Method> getHandler(String[] paramList) {
-        var paramTypes = new Class[paramList.length + 2];
+        var paramTypes = new Class[paramList.length + 1];
         Arrays.fill(paramTypes, String.class);
-        paramTypes[0] = ServerApp.class;
-        paramTypes[1] = Request.class;
+        paramTypes[0] = Request.class;
         try {
             var m = this.getClass().getMethod("doHandleRequest", paramTypes);
             if (!StateResult.class.isAssignableFrom(m.getReturnType()))
