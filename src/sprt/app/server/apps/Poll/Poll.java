@@ -15,7 +15,13 @@ import sprt.serialization.*;
 
 import java.util.Map;
 
+/**
+ * Polls what food mood the client has, and offers a discount.
+ */
 public class Poll extends ServerApp {
+    /**
+     * Initial poll step.
+     */
     public static class InitialStep extends State {
         @Override
         public String name() {
@@ -26,6 +32,12 @@ public class Poll extends ServerApp {
             return "";
         }
 
+        /**
+         * Handles a client's request
+         * @param req client's request
+         * @return next state + response pair. NameStep if name is not known; else FoodStep.
+         * @throws ValidationException if response data is invalid
+         */
         public StateResult doHandleRequest(Request req) throws ValidationException {
             var cookies = req.getCookieList();
             var fname = cookies.getValue("FName");
@@ -38,6 +50,9 @@ public class Poll extends ServerApp {
         }
     }
 
+    /**
+     * Gets first and last name from client
+     */
     public static class NameStep extends State {
         public String prompt() {
             return "Name (First Last)> ";
@@ -46,6 +61,15 @@ public class Poll extends ServerApp {
         public String name() {
             return "NameStep";
         }
+
+        /**
+         * Handles a client's request
+         * @param req client's request
+         * @param fName first name
+         * @param lName last name
+         * @return next state + response pair
+         * @throws ValidationException if response data is invalid
+         */
         public StateResult doHandleRequest(Request req, String fName, String lName) throws ValidationException {
             return new StateResult(
                     new FoodStep(fName, lName),
@@ -54,6 +78,9 @@ public class Poll extends ServerApp {
         }
     }
 
+    /**
+     * Offers discount to client based on food mood
+     */
     public static class FoodStep extends State {
         private static record RestaurantOffer(String name, int pcOff) {
 
@@ -78,6 +105,13 @@ public class Poll extends ServerApp {
             return fName + "'s Food mood> ";
         }
 
+        /**
+         * Handles a client's request
+         * @param req client's request
+         * @param foodMood type of food (e.g. mexican)
+         * @return No next state. Response contains an offer for a discount at a restaurant.
+         * @throws ValidationException if response data is invalid
+         */
         public StateResult doHandleRequest(Request req, String foodMood) throws ValidationException {
             int repeat;
             var cookies = req.getCookieList();
@@ -106,6 +140,9 @@ public class Poll extends ServerApp {
 
     }
 
+    /**
+     * Creates new Poll application.
+     */
     public Poll() {
         gotoState(new InitialStep());
     }

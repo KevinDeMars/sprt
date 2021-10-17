@@ -15,12 +15,21 @@ import sprt.serialization.ValidationException;
 
 import java.lang.reflect.InvocationTargetException;
 
+/**
+ * An application that can run on a SPRT server
+ */
 public abstract class ServerApp {
     // Current state, or null for the empty state
     protected State state;
     // Keep last response sent for re-sending prompt for parameters
     protected Response lastResponseSent;
 
+    /**
+     * Handles the request by passing it to the app's State.
+     * @param req Request to handle
+     * @return Response to give to client
+     * @throws ValidationException if invalid data
+     */
     public Response handleRequest(Request req) throws ValidationException {
         if (getState() == null) {
             return new Response(Status.ERROR, "NULL", "App has already exited");
@@ -37,18 +46,12 @@ public abstract class ServerApp {
         catch (IllegalArgumentException e) {
             return new Response(Status.ERROR, getState().name(), "Invalid number of parameters. " + getState().prompt());
         }
-
-        /*
-        try {
-            lastResponseSent = state.handleRequest(this, req, req.getParams());
-            return lastResponseSent;
-        } catch (InvocationTargetException | IllegalAccessException e) {
-            return new Response(Status.ERROR, "NULL", "Server error occurred while handling request", new CookieList());
-        } catch (IllegalArgumentException e) {
-            return new Response(Status.ERROR, this.state.name(), "Incorrect number of arguments " + lastResponseSent.getMessage(), new CookieList());
-        }*/
     }
 
+    /**
+     * Transitions to the given state.
+     * @param nextState state to go to. The empty/final state is represented as null.
+     */
     public void gotoState(State nextState) {
         // if no transition (state is same pointer) then do nothing
         if (nextState == state)
@@ -60,6 +63,10 @@ public abstract class ServerApp {
             nextState.onEnter();
     }
 
+    /**
+     * Get current state.
+     * @return the current state
+     */
     public State getState() {
         return this.state;
     }

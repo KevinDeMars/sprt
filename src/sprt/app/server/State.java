@@ -15,12 +15,34 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Optional;
 
+/**
+ * A state that a ServerApp is in at any given time.
+ */
 public abstract class State {
+    /**
+     * Name of the state
+     * @return state name
+     */
     public abstract String name();
+
+    /**
+     * Prompt to give to client
+     * @return the prompt
+     */
     public abstract String prompt();
+
+    // By default, do nothing on enter/exit
     protected void onEnter() {}
     protected void onExit() {}
 
+    /**
+     * Handles the request by finding a method in the current state called doHandleRequest with the correct parameters.
+     * @param req request to handle
+     * @return Result of handling the request (next state + response pair)
+     * @throws InvocationTargetException if the state's handler throws an exception
+     * @throws IllegalAccessException if no permission to run state's handler
+     * @throws IllegalArgumentException if no handler exists for the appropriate parameters.
+     */
     StateResult handleRequest(Request req) throws InvocationTargetException, IllegalAccessException {
         var params = req.getParams();
         var method = getHandler(params);

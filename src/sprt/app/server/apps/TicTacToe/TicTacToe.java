@@ -16,7 +16,13 @@ import sprt.serialization.Response;
 import sprt.serialization.Status;
 import sprt.serialization.ValidationException;
 
+/**
+ * A simple two-player tic-tac-toe application.
+ */
 public class TicTacToe extends ServerApp {
+    /**
+     * Initial state, waits for request
+     */
     public class InitialState extends State {
         @Override
         public String name() {
@@ -28,11 +34,20 @@ public class TicTacToe extends ServerApp {
             return null;
         }
 
+        /**
+         * Handles a client's request
+         * @param req client's request
+         * @return next state + response pair. Goes to PlayerMoveState.
+         * @throws ValidationException if response data is invalid
+         */
         public StateResult doHandleRequest(Request req) throws ValidationException {
             return new StateResult(new PlayerMoveState());
         }
     }
 
+    /**
+     * Asks player to move
+     */
     public class PlayerMoveState extends State {
         @Override
         public String name() {
@@ -44,6 +59,14 @@ public class TicTacToe extends ServerApp {
             return board + " " + board.getTurn() + "'s turn (row col)> ";
         }
 
+        /**
+         * Handles a client's request
+         * @param req client's request
+         * @param sRow String representation of row to move to (valid: 1-3)
+         * @param sCol String representation of column to move to (valid: 1-3)
+         * @return next state + response pair. Stays in this state until game is over, then displays winner.
+         * @throws ValidationException if response data is invalid
+         */
         public StateResult doHandleRequest(Request req, String sRow, String sCol) throws ValidationException {
             int row, col;
             try {
@@ -75,6 +98,9 @@ public class TicTacToe extends ServerApp {
 
     private final Board board = new Board();
 
+    /**
+     * Creates new Tic-Tac-Toe application.
+     */
     public TicTacToe() {
         gotoState(new InitialState());
     }

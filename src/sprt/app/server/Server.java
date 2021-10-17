@@ -18,29 +18,36 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.*;
 
+/**
+ * Server implementing SPRT 1.0 Protocol.
+ */
 public class Server {
     private static final Logger LOG = Logger.getLogger(Server.class.getName());
     // Number of times socket.accept() is allowed to fail in a row before server gives up
     private static final int NUM_ACCEPT_TRIES = 10;
-    private static final int TIMEOUT_MS = 5 * 1000;
+    private static final int TIMEOUT_MS = 20 * 1000;
 
     protected enum Error {
-        TooManyAcceptFails(0);
+        TooManyAcceptFails(0), BadArg(1);
+
         public final int code;
         Error(int code) {
             this.code = code;
         }
     }
 
+    /**
+     * Runs a server with the given port and # threads.
+     * @param args port (1-65535), numThreads (1+)
+     */
     public static void main(String[] args) {
         if (args.length != 2) {
             System.out.println("Usage: Server <port> <numThreads>");
             return;
         }
 
-        int port = 12345;
-        int numThreads = 10;
-
+        int port = parseIntOrExit("port", args[0], 1, 65535);
+        int numThreads = parseIntOrExit("numThreads", args[1], 1, Integer.MAX_VALUE);
         setupLogger();
 
         try {
@@ -50,10 +57,29 @@ public class Server {
         }
     }
 
+    private static int parseIntOrExit(String varname, String str, int min, int max) {
+        int x = 0;
+        try {
+            x = Integer.parseInt(str);
+        }
+        catch (NumberFormatException e) {
+            System.err.println(varname + " must be an integer");
+            System.exit(Error.BadArg.code);
+        }
+
+        if (x < min || x > max) {
+            System.err.println(varname + " must be >" + min + " and <" + max);
+            System.exit(Error.BadArg.code);
+        }
+
+        return x;
+    }
+
     private static void setupLogger() {
         try {
             LOG.setLevel(Level.ALL);
 
+            // Remove default console handler
             var defaultHandlers = Logger.getLogger("").getHandlers();
             for (var hnd : defaultHandlers) {
                 Logger.getLogger("").removeHandler(hnd);
@@ -69,22 +95,31 @@ public class Server {
             hnd2.setLevel(Level.ALL);
             LOG.addHandler(hnd2);
         } catch (IOException e) {
+            System.err.println("Couldn't set up log: " + e);
             e.printStackTrace();
+            // Continue without logging
         }
     }
-
 
     private ExecutorService threadPool;
     private ServerSocket socket;
 
+    /**
+     * Creates server with the given port and # threads.
+     * @param port port to run on, between 1 and 65535
+     * @param numThreads Size of thread pool.
+     * @throws IOException if I/O error occurs.
+     */
     public Server(int port, int numThreads) throws IOException {
         socket = new ServerSocket();
-        //LOG.info(socket.getLocalSocketAddress() + " " + socket.getLocalPort());
         socket.setReuseAddress(true);
         socket.bind(new InetSocketAddress(InetAddress.getByName("0.0.0.0"), port));
         threadPool = Executors.newFixedThreadPool(numThreads);
     }
 
+    /**
+     * Runs the server forever.
+     */
     public void go() {
         LOG.info("Listening on port " + this.socket.getLocalPort());
 
@@ -145,38 +180,45 @@ public class Server {
 
         var app = getApp(req.getFunction());
         if (app.isEmpty()) {
-            // TODO
-            cliSock.close();
+            new Response(Status.ERROR, "NULL", "Unexpected function").encode(out);
             return;
         }
         try {
             runApp(cliSock, in, out, app.get(), req);
         }
-        catch (InvocationTargetException | IllegalAccessException e) {
-            LOG.log(Level.INFO,"Server error running app " + app.get().getClass(), e);
+        catch (ValidationException e) {
+            LOG.log(Level.INFO, logPrefix(cliSock) + "Bad data: " + e.getMessage(), e);
+            new Response(Status.ERROR, "NULL", "Bad data.")
+                    .encode(out);
         }
-
-
-
-        cliSock.close();
+        catch (InvocationTargetException | IllegalAccessException e) {
+            LOG.log(Level.INFO,logPrefix(cliSock) + "Server error running app " + app.get().getClass(), e);
+        }
     }
 
-    private void runApp(Socket cliSock, MessageInput in, MessageOutput out, ServerApp app, Request initialRequest)
+    private void runApp(Socket cliSock, MessageInput in, MessageOutput out, ServerApp app, Request request)
             throws InvocationTargetException, IllegalAccessException, ValidationException, IOException
     {
-        app.handleRequest(initialRequest).encode(out);
-
         Response response;
+        String expectedFunction = request.getFunction();
         do {
-            var req = (Request) Message.decodeType(in, MessageType.Request);
-            LOG.finer(logPrefix(cliSock) + "Received: " + req);
+            LOG.finer(logPrefix(cliSock) + "Received: " + request);
+            if (!request.getFunction().equals(expectedFunction)) {
+                response = new Response(Status.ERROR, expectedFunction, "Incorrect function " + request.getFunction() + ". Should be " + expectedFunction);
+            }
+            else {
+                response = app.handleRequest(request);
+                expectedFunction = response.getFunction();
+            }
 
-            response = app.handleRequest(req);
             response.setCookieList(
-                    req.getCookieList().addAll(response.getCookieList())
+                    request.getCookieList().addAll(response.getCookieList())
             );
             response.encode(out);
             LOG.finer(logPrefix(cliSock) + "Sent: " + response);
+
+
+            request = (Request) Message.decodeType(in, MessageType.Request);
         }
         while (!"NULL".equals(response.getFunction()));
 

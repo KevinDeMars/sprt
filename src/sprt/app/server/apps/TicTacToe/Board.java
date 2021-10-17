@@ -8,6 +8,9 @@
 
 package sprt.app.server.apps.TicTacToe;
 
+/**
+ * A tic-tac-toe board
+ */
 public class Board {
     private static final int BOARD_SIZE = 3;
     private char turn = 'X';
@@ -17,10 +20,19 @@ public class Board {
             {' ', ' ', ' '},
     };
 
+    /**
+     * Gets whose turn it is
+     * @return 'X' or 'O'
+     */
     public char getTurn() {
         return turn;
     }
 
+    /**
+     * Place a piece at the given position for the player whose turn it currently is
+     * @param row destination row (0-2)
+     * @param col destination col (0-2)
+     */
     public void move(int row, int col) {
         if (!canMove(row, col)) {
             throw new IllegalArgumentException("Position already filled");
@@ -29,10 +41,20 @@ public class Board {
         turn = (turn == 'X') ? 'O' : 'X';
     }
 
+    /**
+     * Gets whether the current player can place a piece at the given location.
+     * @param row row to check
+     * @param col column to check
+     * @return true if legal move; else, false.
+     */
     public boolean canMove(int row, int col) {
         return squares[row][col] == ' ';
     }
 
+    /**
+     * Gets whether the board is full.
+     * @return true if board is full; else, false.
+     */
     public boolean isFull() {
         for (var row : squares) {
             for (char x : row) {
@@ -43,6 +65,10 @@ public class Board {
         return true;
     }
 
+    /**
+     * Gets the winner of the game, if there is one.
+     * @return 'X' or 'O' if there is a winner; else, null.
+     */
     public Character winner() {
         // Check horizontal
         for (int row = 0; row < BOARD_SIZE; ++row) {
