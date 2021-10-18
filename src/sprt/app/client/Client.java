@@ -124,7 +124,7 @@ public class Client {
             out.print(resp.getMessage());
 
             function = resp.getFunction();
-            done = "NULL".equals(function);
+            done = Response.NO_NEXT_FUNCTION.equals(function);
             if (!done)
                 params = console.readMultiTokens("");
         } while (!done);

@@ -180,7 +180,7 @@ public class Server {
 
         var app = getApp(req.getFunction());
         if (app.isEmpty()) {
-            new Response(Status.ERROR, "NULL", "Unexpected function").encode(out);
+            new Response(Status.ERROR, Response.NO_NEXT_FUNCTION, "Unexpected function").encode(out);
             return;
         }
         try {
@@ -188,7 +188,7 @@ public class Server {
         }
         catch (ValidationException e) {
             LOG.log(Level.INFO, logPrefix(cliSock) + "Bad data: " + e.getMessage(), e);
-            new Response(Status.ERROR, "NULL", "Bad data.")
+            new Response(Status.ERROR, Response.NO_NEXT_FUNCTION, "Bad data.")
                     .encode(out);
         }
         catch (InvocationTargetException | IllegalAccessException e) {
@@ -201,6 +201,7 @@ public class Server {
     {
         Response response;
         String expectedFunction = request.getFunction();
+        boolean done;
         do {
             LOG.finer(logPrefix(cliSock) + "Received: " + request);
             if (!request.getFunction().equals(expectedFunction)) {
@@ -217,10 +218,11 @@ public class Server {
             response.encode(out);
             LOG.finer(logPrefix(cliSock) + "Sent: " + response);
 
-
-            request = (Request) Message.decodeType(in, MessageType.Request);
+            done = Response.NO_NEXT_FUNCTION.equals(response.getFunction());
+            if (!done)
+                request = (Request) Message.decodeType(in, MessageType.Request);
         }
-        while (!"NULL".equals(response.getFunction()));
+        while (!done);
 
     }
 

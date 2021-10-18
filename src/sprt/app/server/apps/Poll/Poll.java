@@ -11,7 +11,10 @@ package sprt.app.server.apps.Poll;
 import sprt.app.server.ServerApp;
 import sprt.app.server.State;
 import sprt.app.server.StateResult;
-import sprt.serialization.*;
+import sprt.serialization.CookieList;
+import sprt.serialization.Request;
+import sprt.serialization.Status;
+import sprt.serialization.ValidationException;
 
 import java.util.Map;
 
@@ -44,9 +47,9 @@ public class Poll extends ServerApp {
             var lname = cookies.getValue("LName");
 
             if (fname != null && lname != null)
-                return new StateResult(new FoodStep(fname, lname));
+                return new StateResult(new FoodStep(fname, lname), Status.OK);
             else
-                return new StateResult(new NameStep());
+                return new StateResult(new NameStep(), Status.OK);
         }
     }
 
@@ -73,6 +76,7 @@ public class Poll extends ServerApp {
         public StateResult doHandleRequest(Request req, String fName, String lName) throws ValidationException {
             return new StateResult(
                     new FoodStep(fName, lName),
+                    Status.OK,
                     new CookieList().add("FName", fName).add("LName", lName)
             );
         }
@@ -125,9 +129,7 @@ public class Poll extends ServerApp {
                     repeat = Integer.parseInt(req.getCookieList().getValue("Repeat"));
                 }
                 catch (NumberFormatException e) {
-                    return new StateResult(null, new Response(
-                            Status.ERROR, "NULL", "Repeat (in cookie list) must be integer")
-                    );
+                    return StateResult.exit(Status.ERROR, "Repeat (in cookie list) must be integer");
                 }
             }
             ++repeat;
@@ -135,7 +137,7 @@ public class Poll extends ServerApp {
             var offer = OFFERS.getOrDefault(foodMood.toUpperCase(), new RestaurantOffer("McDonalds", 10));
             var newCookies = new CookieList().add("Repeat", String.valueOf(repeat));
             String msg = offer.pcOff + "% + " + repeat + "% off at " + offer.name;
-            return new StateResult(null, new Response(Status.OK, "NULL", msg, newCookies));
+            return StateResult.exit(Status.OK, msg, newCookies);
         }
 
     }

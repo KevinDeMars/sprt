@@ -32,7 +32,7 @@ public abstract class ServerApp {
      */
     public Response handleRequest(Request req) throws ValidationException {
         if (getState() == null) {
-            return new Response(Status.ERROR, "NULL", "App has already exited");
+            return new Response(Status.ERROR, Response.NO_NEXT_FUNCTION, "App has already exited");
         }
 
         try {
@@ -41,7 +41,7 @@ public abstract class ServerApp {
             return result.resp();
         } catch (InvocationTargetException | IllegalAccessException e) {
             e.printStackTrace();
-            return new Response(Status.ERROR, "NULL", "A server error occurred processing the request.");
+            return new Response(Status.ERROR, Response.NO_NEXT_FUNCTION, "A server error occurred processing the request.");
         }
         catch (IllegalArgumentException e) {
             return new Response(Status.ERROR, getState().name(), "Invalid number of parameters. " + getState().prompt());

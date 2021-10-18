@@ -12,7 +12,6 @@ import sprt.app.server.ServerApp;
 import sprt.app.server.State;
 import sprt.app.server.StateResult;
 import sprt.serialization.Request;
-import sprt.serialization.Response;
 import sprt.serialization.Status;
 import sprt.serialization.ValidationException;
 
@@ -41,7 +40,7 @@ public class TicTacToe extends ServerApp {
          * @throws ValidationException if response data is invalid
          */
         public StateResult doHandleRequest(Request req) throws ValidationException {
-            return new StateResult(new PlayerMoveState());
+            return new StateResult(new PlayerMoveState(), Status.OK);
         }
     }
 
@@ -74,25 +73,23 @@ public class TicTacToe extends ServerApp {
                 col = Integer.parseInt(sCol);
             }
             catch (NumberFormatException e) {
-                return new StateResult(this, new Response(Status.ERROR, name(),
-                        "position must be 2 integers. " + prompt())
-                );
+                return new StateResult(this, Status.ERROR, "Position must be two integers. ");
             }
             if (row < 1 || col < 1 || row > 3 || col > 3)
-                return new StateResult(this, new Response(Status.ERROR, name(), "position must be between 1 and 3. " + prompt()));
+                return new StateResult(this, Status.ERROR, "Position must be between 1 and 3. ");
 
             // adjust from 1-based index to 0-based
             row--;
             col--;
             if (!board.canMove(row, col))
-                return new StateResult(this, new Response(Status.ERROR, name(), "Can't move there. " + prompt()));
+                return new StateResult(this, Status.ERROR, "Can't move there. ");
             board.move(row, col);
             if (board.winner() != null)
-                return new StateResult(null, new Response(Status.OK, "NULL", board + "Winner: " + board.winner()));
+                return StateResult.exit(Status.OK, board + " Winner: " + board.winner());
             if (board.isFull()) {
-                return new StateResult(null, new Response(Status.OK, "NULL", board + "It's a draw."));
+                return StateResult.exit(Status.OK, board + " It's a draw.");
             }
-            return new StateResult(this);
+            return new StateResult(this, Status.OK);
         }
     }
 

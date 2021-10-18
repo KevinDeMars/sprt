@@ -19,6 +19,8 @@ public class Response extends Message {
     private Status status;
     /** Message provided to the client */
     private String message;
+    /** What to set the function to if there is no next function (e.g. app decides to exit) */
+    public static final String NO_NEXT_FUNCTION = "NULL";
 
     @Override
     protected MessageType getType() {
