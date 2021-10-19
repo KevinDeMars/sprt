@@ -12,19 +12,23 @@ import sprt.serialization.*;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.*;
 
 /**
- * Server implementing SPRT 1.0 Protocol.
+ * Server implementing SPRT Protocol.
  */
 public class Server {
     private static final Logger LOG = Logger.getLogger(Server.class.getName());
     // Number of times socket.accept() is allowed to fail in a row before server gives up
     private static final int NUM_ACCEPT_TRIES = 10;
+    // Time client has to send data before it gets kicked off
     private static final int TIMEOUT_MS = 20 * 1000;
 
     protected enum Error {
@@ -101,8 +105,8 @@ public class Server {
         }
     }
 
-    private ExecutorService threadPool;
-    private ServerSocket socket;
+    private final ExecutorService threadPool;
+    private final ServerSocket socket;
 
     /**
      * Creates server with the given port and # threads.
@@ -113,7 +117,7 @@ public class Server {
     public Server(int port, int numThreads) throws IOException {
         socket = new ServerSocket();
         socket.setReuseAddress(true);
-        socket.bind(new InetSocketAddress(InetAddress.getByName("0.0.0.0"), port));
+        socket.bind(new InetSocketAddress(port));
         threadPool = Executors.newFixedThreadPool(numThreads);
     }
 
@@ -144,6 +148,7 @@ public class Server {
         }
     }
 
+    // Runs doHandleClient and deals with exceptions + closing socket
     private void handleClient(Socket cliSock) {
         LOG.fine(logPrefix(cliSock) + "Client connected");
 
@@ -178,26 +183,24 @@ public class Server {
 
         var req = (Request) Message.decodeType(in, MessageType.Request);
 
+        // If app w/ given name exists, run it
         var app = getApp(req.getFunction());
-        if (app.isEmpty()) {
+        if (app.isPresent()) {
+            // Run app. Send error message if ValidationException or server causes these two exceptions
+            try {
+                runApp(cliSock, in, out, app.get(), req);
+            } catch (ValidationException e) {
+                LOG.log(Level.INFO, logPrefix(cliSock) + "Bad data: " + e.getMessage(), e);
+                new Response(Status.ERROR, Response.NO_NEXT_FUNCTION, "Bad data.")
+                        .encode(out);
+            }
+        } else {
             new Response(Status.ERROR, Response.NO_NEXT_FUNCTION, "Unexpected function").encode(out);
-            return;
-        }
-        try {
-            runApp(cliSock, in, out, app.get(), req);
-        }
-        catch (ValidationException e) {
-            LOG.log(Level.INFO, logPrefix(cliSock) + "Bad data: " + e.getMessage(), e);
-            new Response(Status.ERROR, Response.NO_NEXT_FUNCTION, "Bad data.")
-                    .encode(out);
-        }
-        catch (InvocationTargetException | IllegalAccessException e) {
-            LOG.log(Level.INFO,logPrefix(cliSock) + "Server error running app " + app.get().getClass(), e);
         }
     }
 
     private void runApp(Socket cliSock, MessageInput in, MessageOutput out, ServerApp app, Request request)
-            throws InvocationTargetException, IllegalAccessException, ValidationException, IOException
+            throws ValidationException, IOException
     {
         Response response;
         String expectedFunction = request.getFunction();

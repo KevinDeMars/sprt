@@ -21,8 +21,6 @@ import java.lang.reflect.InvocationTargetException;
 public abstract class ServerApp {
     // Current state, or null for the empty state
     protected State state;
-    // Keep last response sent for re-sending prompt for parameters
-    protected Response lastResponseSent;
 
     /**
      * Handles the request by passing it to the app's State.
@@ -40,6 +38,7 @@ public abstract class ServerApp {
             gotoState(result.nextState());
             return result.resp();
         } catch (InvocationTargetException | IllegalAccessException e) {
+            System.err.println("Server error running request:");
             e.printStackTrace();
             return new Response(Status.ERROR, Response.NO_NEXT_FUNCTION, "A server error occurred processing the request.");
         }
