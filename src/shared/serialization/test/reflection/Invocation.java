@@ -6,7 +6,7 @@
  *
  * ***********************************************/
 
-package sprt.serialization.test.reflection;
+package shared.serialization.test.reflection;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;

@@ -8,6 +8,7 @@
 
 package n4m.serialization;
 
+import java.io.EOFException;
 import java.util.Objects;
 
 /** Represents an N4M query and provides serialization/deserialization */
@@ -23,7 +24,21 @@ public class N4MQuery extends N4MMessage {
      * @throws NullPointerException if business name is null
      */
     public N4MQuery(int msgId, String businessName) throws ECException {
+        super(msgId);
+    }
 
+    protected static N4MQuery decode(BinaryReader reader, int msgId, int errCode) throws ECException {
+        if (errCode != ErrorCode.NOERROR.getErrorCodeNum())
+            throw new ECException("Query can't have error code", ErrorCode.INCORRECTHEADER);
+
+        String busName;
+        try {
+            busName = reader.readLpStr(N4M_CHARSET);
+        }
+        catch (EOFException e) {
+            throw new ECException("Message too short", ErrorCode.BADMSGSIZE, e);
+        }
+        return new N4MQuery(msgId, busName);
     }
 
     /**
@@ -34,7 +49,7 @@ public class N4MQuery extends N4MMessage {
      */
     @Override
     public String toString() {
-        return super.toString();
+        return String.format("N4M QUERY: MsgID=%d, BusName=%s", msgId, businessName);
     }
 
     /**

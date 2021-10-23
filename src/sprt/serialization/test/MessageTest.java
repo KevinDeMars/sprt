@@ -14,12 +14,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import shared.serialization.test.EqualsAndHashCodeTests;
+import shared.serialization.test.reflection.CheckArgumentsTestFactory.Check;
+import shared.serialization.test.reflection.CheckNullTestFactory;
+import shared.serialization.test.reflection.CheckTokenTestFactory;
+import shared.serialization.test.reflection.ConstructorInvocation;
+import shared.serialization.test.reflection.MethodInvocation;
 import sprt.serialization.*;
-import sprt.serialization.test.reflection.CheckArgumentsTestFactory.Check;
-import sprt.serialization.test.reflection.CheckNullTestFactory;
-import sprt.serialization.test.reflection.CheckTokenTestFactory;
-import sprt.serialization.test.reflection.ConstructorInvocation;
-import sprt.serialization.test.reflection.MethodInvocation;
 
 import java.io.*;
 import java.util.List;

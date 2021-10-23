@@ -12,12 +12,13 @@ import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+import shared.serialization.test.EqualsAndHashCodeTests;
+import shared.serialization.test.reflection.CheckArgumentsTestFactory.Check;
+import shared.serialization.test.reflection.CheckNullTestFactory;
+import shared.serialization.test.reflection.CheckTokenTestFactory;
+import shared.serialization.test.reflection.Invocation;
+import shared.serialization.test.reflection.MethodInvocation;
 import sprt.serialization.*;
-import sprt.serialization.test.reflection.CheckArgumentsTestFactory.Check;
-import sprt.serialization.test.reflection.CheckNullTestFactory;
-import sprt.serialization.test.reflection.CheckTokenTestFactory;
-import sprt.serialization.test.reflection.Invocation;
-import sprt.serialization.test.reflection.MethodInvocation;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,8 +32,8 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static shared.serialization.test.reflection.TestAssertions.assertCollectionContains;
 import static sprt.serialization.test.MessageInputTest.makeTestMessageInput;
-import static sprt.serialization.test.TestAssertions.assertCollectionContains;
 
 class CookieListTest {
     private final Collection<CookieList> equalLists = List.of(

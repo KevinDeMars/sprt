@@ -6,7 +6,7 @@
  *
  * ***********************************************/
 
-package sprt.serialization.test;
+package shared.serialization.test;
 
 import org.junit.jupiter.api.DynamicContainer;
 import org.junit.jupiter.api.DynamicNode;

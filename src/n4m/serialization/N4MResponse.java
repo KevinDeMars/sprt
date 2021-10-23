@@ -8,6 +8,8 @@
 
 package n4m.serialization;
 
+import java.io.EOFException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -34,7 +36,32 @@ public class N4MResponse extends N4MMessage {
     public N4MResponse(ErrorCode errorCode, int msgId, long timestamp, List<ApplicationEntry> applications)
         throws ECException
     {
+        super(msgId);
+    }
 
+    protected static N4MResponse decode(BinaryReader reader, int msgId, int errorCode) throws ECException {
+        long timestamp;
+        int appCount;
+        List<ApplicationEntry> entries = new ArrayList<>();
+        try {
+            timestamp = reader.readUInt32();
+            appCount = reader.readUInt8();
+            for (int i = 0; i < appCount; ++i) {
+                entries.add(readAppEntry(reader));
+            }
+        }
+        catch (EOFException e) {
+            throw new ECException("Message too short", ErrorCode.BADMSGSIZE, e);
+        }
+
+        var ec = ErrorCode.valueOf(errorCode);
+        return new N4MResponse(ec, msgId, timestamp, entries);
+    }
+
+    protected static ApplicationEntry readAppEntry(BinaryReader reader) throws EOFException, ECException {
+        int useCount = reader.readUInt16();
+        String name = reader.readLpStr(N4M_CHARSET);
+        return new ApplicationEntry(name, useCount);
     }
 
     /**

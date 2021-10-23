@@ -6,12 +6,12 @@
  *
  * ***********************************************/
 
-package sprt.serialization.test.reflection;
+package shared.serialization.test.reflection;
 
 import org.junit.jupiter.api.DynamicTest;
 import sprt.serialization.ValidationException;
 
-import static sprt.serialization.test.TestAssertions.assertThrowsWithCause;
+import static shared.serialization.test.reflection.TestAssertions.assertThrowsWithCause;
 
 public class CheckTokenTestFactory extends CheckArgumentsTestFactory {
     @Override

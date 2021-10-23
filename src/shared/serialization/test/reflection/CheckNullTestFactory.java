@@ -6,11 +6,11 @@
  *
  * ***********************************************/
 
-package sprt.serialization.test.reflection;
+package shared.serialization.test.reflection;
 
 import org.junit.jupiter.api.DynamicTest;
 
-import static sprt.serialization.test.TestAssertions.assertThrowsWithCause;
+import static shared.serialization.test.reflection.TestAssertions.assertThrowsWithCause;
 
 public class CheckNullTestFactory extends CheckArgumentsTestFactory {
     @Override

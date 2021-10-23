@@ -6,7 +6,7 @@
  *
  * ***********************************************/
 
-package sprt.serialization.test.reflection;
+package shared.serialization.test.reflection;
 
 import org.junit.jupiter.api.DynamicContainer;
 import org.junit.jupiter.api.DynamicTest;

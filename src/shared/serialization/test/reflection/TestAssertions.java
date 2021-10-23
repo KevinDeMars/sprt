@@ -6,7 +6,7 @@
  *
  * ***********************************************/
 
-package sprt.serialization.test;
+package shared.serialization.test.reflection;
 
 import org.junit.jupiter.api.function.Executable;
 
