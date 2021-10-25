@@ -83,7 +83,7 @@ public class Util {
      * @return Stream containing all items in all streams
      */
     @SafeVarargs
-    public static <T> Stream<T> concat(Stream<T>... streams) {
+    public static <T> Stream<T> concat(Stream<? extends T>... streams) {
         Stream<T> result = Stream.empty();
         for (var s : streams) {
             result = Stream.concat(result, s);
@@ -98,7 +98,7 @@ public class Util {
      * @return Stream containing all items in all iterables
      */
     @SafeVarargs
-    public static <T> Stream<T> concat(Iterable<T>... itrs) {
+    public static <T> Stream<T> concat(Iterable<? extends T>... itrs) {
         Stream<T> s = Stream.empty();
         for (var itr : itrs) {
             s = Stream.concat(s, stream(itr));

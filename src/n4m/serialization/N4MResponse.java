@@ -9,12 +9,20 @@
 package n4m.serialization;
 
 import java.io.EOFException;
+import java.io.IOException;
+import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
+import static sprt.serialization.Util.checkNull;
+import static sprt.serialization.Util.deepCheckNull;
+
 /** Represents an N4M response and provides serialization/deserialization */
 public class N4MResponse extends N4MMessage {
+    public static final int MAX_APPLICATION_COUNT = 0xFF;
+
     // One entry for each application that the requesting business owns
     private List<ApplicationEntry> applications;
     // Time of the most recent application execution
@@ -37,15 +45,18 @@ public class N4MResponse extends N4MMessage {
         throws ECException
     {
         super(msgId);
+        setErrorCode(errorCode);
+        setTimestamp(timestamp);
+        setApplications(applications);
     }
 
-    protected static N4MResponse decode(BinaryReader reader, int msgId, int errorCode) throws ECException {
+    protected static N4MResponse doDecode(BinaryReader reader, int msgId, int errorCode) throws ECException {
         long timestamp;
         int appCount;
         List<ApplicationEntry> entries = new ArrayList<>();
         try {
-            timestamp = reader.readUInt32();
-            appCount = reader.readUInt8();
+            timestamp = reader.readUInt();
+            appCount = reader.readByte();
             for (int i = 0; i < appCount; ++i) {
                 entries.add(readAppEntry(reader));
             }
@@ -58,10 +69,36 @@ public class N4MResponse extends N4MMessage {
         return new N4MResponse(ec, msgId, timestamp, entries);
     }
 
+
     protected static ApplicationEntry readAppEntry(BinaryReader reader) throws EOFException, ECException {
-        int useCount = reader.readUInt16();
-        String name = reader.readLpStr(N4M_CHARSET);
+        int useCount = reader.readShort();
+        String name = null;
+        try {
+            name = reader.readLpStr(N4M_CHARSET_DECODER);
+        } catch (CharacterCodingException e) {
+            throw new ECException("App name has invalid chars", ErrorCode.BADMSG, e);
+        }
         return new ApplicationEntry(name, useCount);
+    }
+
+    @Override
+    protected void doEncode(BitDataOutputStream out) throws IOException {
+        // Finish writing header
+        out.writeBit(1); // 1 for response
+        out.writeBits(errorCode.getErrorCodeNum(), 3);
+        out.writeByte(msgId);
+        // Data
+        out.writeInt((int) timestamp);
+        out.writeByte(applications.size());
+        for (var entry : applications) {
+            out.writeShort(entry.getAccessCount());
+            try {
+                out.writeLpStr(entry.getApplicationName(), N4M_CHARSET_ENCODER);
+            }
+            catch (CharacterCodingException e) {
+                throw new IllegalStateException("Application name has invalid characters", e);
+            }
+        }
     }
 
     /**
@@ -75,7 +112,11 @@ public class N4MResponse extends N4MMessage {
      */
     @Override
     public String toString() {
-        return super.toString();
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("N4M RESPONSE: MsgID=%d, Error=%s, Time=%s: ", msgId, errorCode, timestampToDate(timestamp)));
+        for (var app : this.applications)
+            sb.append(String.format("%s(%d) ", app.getApplicationName(), app.getAccessCount()));
+        return sb.toString();
     }
 
     /**
@@ -93,6 +134,10 @@ public class N4MResponse extends N4MMessage {
      * @throws NullPointerException if applications is null
      */
     public void setApplications(List<ApplicationEntry> applications) throws ECException {
+        deepCheckNull(applications, "applications");
+        if (applications.size() > MAX_APPLICATION_COUNT) {
+            throw new ECException("applications list is too long", ErrorCode.BADMSG);
+        }
         this.applications = applications;
     }
 
@@ -112,7 +157,19 @@ public class N4MResponse extends N4MMessage {
      * @throws ECException if validation fails (BADMSG)
      */
     public void setTimestamp(long timestamp) throws ECException {
+        // TODO is there a min timestamp?
+        if (timestamp > dateToTimestamp(new Date())) {
+            throw new ECException("Timestamp is in the future", ErrorCode.BADMSG);
+        }
         this.timestamp = timestamp;
+    }
+
+    public static long dateToTimestamp(Date d) {
+        return d.getTime() / 1000;
+    }
+
+    public static Date timestampToDate(long timestamp) {
+        return new Date(timestamp * 1000);
     }
 
     /**
@@ -129,7 +186,7 @@ public class N4MResponse extends N4MMessage {
      * @throws NullPointerException if errorCode is null
      */
     public void setErrorCode(ErrorCode errorCode) {
-        this.errorCode = errorCode;
+        this.errorCode = checkNull(errorCode, "errorCode");
     }
 
     @Override

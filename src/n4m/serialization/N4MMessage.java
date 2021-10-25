@@ -8,9 +8,10 @@
 
 package n4m.serialization;
 
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
+import java.nio.charset.*;
 import java.util.Objects;
 
 /**
@@ -18,16 +19,21 @@ import java.util.Objects;
  */
 public abstract class N4MMessage {
     public static final Charset N4M_CHARSET = StandardCharsets.US_ASCII;
+    protected static final CharsetEncoder N4M_CHARSET_ENCODER = N4M_CHARSET.newEncoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT);
+    protected static final CharsetDecoder N4M_CHARSET_DECODER = N4M_CHARSET.newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT);
+    public static final int MAX_MSG_ID = 0xFF;
+    public static final byte VERSION = 0b0010;
 
     // randomly generated number that client uses to map server responses to outstanding requests
     // range: 0-255
     int msgId;
 
     protected N4MMessage(int msgId) throws ECException {
-        if (msgId > 255 || msgId < 0) {
-            throw new ECException("msgId must be between 0 and 255", ErrorCode.INCORRECTHEADER);
-        }
-        this.msgId = msgId;
+        setMsgId(msgId);
     }
 
     /**
@@ -50,21 +56,21 @@ public abstract class N4MMessage {
             version = reader.readBits(4);
             isResponse = reader.readBit() == 1;
             errCode = reader.readBits(3);
-            msgId = reader.readUInt8();
+            msgId = reader.readByte();
         }
         catch (EOFException e) {
             throw new ECException("Header too short", ErrorCode.BADMSGSIZE, e);
         }
 
-        if (version != 0b0010) {
+        if (version != VERSION) {
             throw new ECException("Bad version: " + version, ErrorCode.INCORRECTHEADER);
         }
 
         if (isResponse) {
-            return N4MResponse.decode(reader, msgId, errCode);
+            return N4MResponse.doDecode(reader, msgId, errCode);
         }
         else {
-            return N4MQuery.decode(reader, msgId, errCode);
+            return N4MQuery.doDecode(reader, msgId, errCode);
         }
     }
 
@@ -73,9 +79,19 @@ public abstract class N4MMessage {
      * @return message encoded in byte array
      */
     public byte[] encode() {
-        // TODO
-        return new byte[0];
+        var bOut = new ByteArrayOutputStream();
+        var out = new BitDataOutputStream(bOut);
+        try {
+            out.writeBits(VERSION, 4);
+            doEncode(out);
+        } catch (IOException e) {
+            // TODO do something
+            e.printStackTrace();
+        }
+        return bOut.toByteArray();
     }
+
+    protected abstract void doEncode(BitDataOutputStream out) throws IOException;
 
     /**
      * Return message ID
@@ -91,6 +107,9 @@ public abstract class N4MMessage {
      * @throws ECException if validation fails (BADMSG)
      */
     public void setMsgId(int msgId) throws ECException {
+        if (msgId > MAX_MSG_ID || msgId < 0) {
+            throw new ECException("msgId out of range", ErrorCode.INCORRECTHEADER);
+        }
         this.msgId = msgId;
     }
 

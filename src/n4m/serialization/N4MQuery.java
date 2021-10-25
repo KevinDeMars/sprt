@@ -9,10 +9,15 @@
 package n4m.serialization;
 
 import java.io.EOFException;
+import java.io.IOException;
+import java.nio.charset.CharacterCodingException;
 import java.util.Objects;
+
+import static sprt.serialization.Util.checkNull;
 
 /** Represents an N4M query and provides serialization/deserialization */
 public class N4MQuery extends N4MMessage {
+    public static final int MAX_BUSINESS_NAME_LENGTH = 0xFF;
     // Name of business making the request
     private String businessName;
 
@@ -25,20 +30,39 @@ public class N4MQuery extends N4MMessage {
      */
     public N4MQuery(int msgId, String businessName) throws ECException {
         super(msgId);
+        setBusinessName(businessName);
     }
 
-    protected static N4MQuery decode(BinaryReader reader, int msgId, int errCode) throws ECException {
+    protected static N4MQuery doDecode(BinaryReader reader, int msgId, int errCode) throws ECException {
         if (errCode != ErrorCode.NOERROR.getErrorCodeNum())
             throw new ECException("Query can't have error code", ErrorCode.INCORRECTHEADER);
 
         String busName;
         try {
-            busName = reader.readLpStr(N4M_CHARSET);
+            busName = reader.readLpStr(N4M_CHARSET_DECODER);
         }
         catch (EOFException e) {
             throw new ECException("Message too short", ErrorCode.BADMSGSIZE, e);
         }
+        catch (CharacterCodingException e) {
+            throw new ECException("Business name has invalid chars", ErrorCode.BADMSG, e);
+        }
         return new N4MQuery(msgId, busName);
+    }
+
+    @Override
+    protected void doEncode(BitDataOutputStream out) throws IOException {
+        // Finish writing header
+        out.writeBit(0); // 0 for Query
+        out.writeBits(0, 3); // error code: 3 zero bits
+        out.writeByte(getMsgId());
+        // Data
+        try {
+            out.writeLpStr(businessName, N4M_CHARSET_ENCODER);
+        }
+        catch (CharacterCodingException e) {
+            throw new IllegalStateException("Invalid business name", e);
+        }
     }
 
     /**
@@ -67,6 +91,16 @@ public class N4MQuery extends N4MMessage {
      * @throws NullPointerException if business name is null
      */
     public void setBusinessName(String businessName) throws ECException {
+        checkNull(businessName, "businessName");
+        if (businessName.length() > MAX_BUSINESS_NAME_LENGTH) {
+            throw new ECException("Business name too long", ErrorCode.BADMSG);
+        }
+        if (businessName.length() < 1) {
+            throw new ECException("Business name can't be empty", ErrorCode.BADMSG);
+        }
+        if (!N4M_CHARSET_ENCODER.canEncode(businessName)) {
+            throw new ECException("Invalid business name for N4M charset", ErrorCode.BADMSG);
+        }
         this.businessName = businessName;
     }
 

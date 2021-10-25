@@ -10,10 +10,15 @@ package n4m.serialization;
 
 import java.util.Objects;
 
+import static sprt.serialization.Util.checkNull;
+
 /**
  * Represents one application and its access count
  */
 public class ApplicationEntry {
+    public static final int MAX_ACCESS_COUNT = 0xFFFF;
+    public static final int MAX_APPLICATION_NAME_LENGTH = 0xFF;
+
     // number of times this app was accessed
     private int accessCount;
     // name of app, e.g. Poll
@@ -29,7 +34,8 @@ public class ApplicationEntry {
     public ApplicationEntry(String applicationName, int accessCt)
             throws ECException
     {
-
+        setApplicationName(applicationName);
+        setAccessCount(accessCt);
     }
 
     /**
@@ -46,6 +52,9 @@ public class ApplicationEntry {
      * @throws ECException if validation fails (BADMSG)
      */
     public void setAccessCount(int accessCount) throws ECException {
+        if (accessCount > MAX_ACCESS_COUNT || accessCount < 0) {
+            throw new ECException("Access count out of range", ErrorCode.BADMSG);
+        }
         this.accessCount = accessCount;
     }
 
@@ -64,6 +73,17 @@ public class ApplicationEntry {
      * @throws NullPointerException if applicationName is null
      */
     public void setApplicationName(String applicationName) throws ECException {
+        checkNull(applicationName, "applicationName");
+        if (applicationName.length() > MAX_APPLICATION_NAME_LENGTH) {
+            throw new ECException("Application name too long", ErrorCode.BADMSG);
+        }
+        if (applicationName.length() == 0) {
+            // TODO do  this?
+            throw new ECException("Empty app name", ErrorCode.BADMSG);
+        }
+        if (!N4MMessage.N4M_CHARSET_ENCODER.canEncode(applicationName)) {
+            throw new ECException("Invalid application name for N4M charset", ErrorCode.BADMSG);
+        }
         this.applicationName = applicationName;
     }
 

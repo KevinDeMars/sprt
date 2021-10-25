@@ -9,7 +9,9 @@
 package n4m.serialization;
 
 import java.io.EOFException;
-import java.nio.charset.Charset;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
 
 /**
  * Stateful reader for big-endian binary data
@@ -23,40 +25,41 @@ public class BinaryReader {
         this.data = data;
     }
 
-    public byte readInt8() throws EOFException {
+    public int readByte() throws EOFException {
         checkAligned();
         checkRange();
         return data[bytePos++];
     }
-    public int readUInt8() throws EOFException {
-        return readInt8();
+
+    public int readShort() throws EOFException {
+        int val = (readByte() & 0xFF) << 8;
+        val |= readByte() & 0xFF;
+        return val;
     }
 
-    public short readInt16() throws EOFException {
-        return (short) ((readInt8() << 8) | readInt8());
+    public int readInt() throws EOFException {
+        int val = (readByte() & 0xFF) << 24;
+        val |= (readByte() & 0xFF) << 16;
+        val |= (readByte() & 0xFF) << 8;
+        val |= readByte() & 0xFF;
+        return val;
     }
-    public int readUInt16() throws EOFException {
-        return readInt16();
-    }
-
-    public int readInt32() throws EOFException {
-        return (readInt16() << 16) | readInt16();
-    }
-    public long readUInt32() throws EOFException {
-        return readInt32();
+    public long readUInt() throws EOFException {
+        return 0xFFFFFFFFL & readInt();
     }
 
     public byte[] readBytes(int len) throws EOFException {
         byte[] result = new byte[len];
         for (int i = 0; i < len; ++i) {
-            result[i] = readInt8();
+            result[i] = (byte) readByte();
         }
         return result;
     }
 
-    public String readLpStr(Charset cs) throws EOFException {
-        int len = readUInt8();
-        return new String(readBytes(len), cs);
+    public String readLpStr(CharsetDecoder decoder) throws EOFException, CharacterCodingException {
+        int len = readByte();
+        var bytes = ByteBuffer.wrap(readBytes(len));
+        return decoder.decode(bytes).toString();
     }
 
     public int readBit() throws EOFException {
