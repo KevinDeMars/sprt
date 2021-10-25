@@ -181,7 +181,16 @@ public class Server {
         var in = new MessageInput(cliSock.getInputStream());
         var out = new MessageOutput(cliSock.getOutputStream());
 
-        var req = (Request) Message.decodeType(in, MessageType.Request);
+        Request req;
+        try {
+            req = (Request) Message.decodeType(in, MessageType.Request);
+        }
+        catch (ValidationException e) {
+            new Response(Status.ERROR, "NULL", "Bad initial request")
+                    .encode(out);
+            return;
+        }
+
 
         // If app w/ given name exists, run it
         var app = getApp(req.getFunction());
