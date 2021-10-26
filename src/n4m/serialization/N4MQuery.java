@@ -51,7 +51,7 @@ public class N4MQuery extends N4MMessage {
     }
 
     @Override
-    protected void doEncode(BitDataOutputStream out) throws IOException {
+    protected void doEncode(BinaryWriter out) throws IOException {
         // Finish writing header
         out.writeBit(0); // 0 for Query
         out.writeBits(0, 3); // error code: 3 zero bits
@@ -61,7 +61,7 @@ public class N4MQuery extends N4MMessage {
             out.writeLpStr(businessName, N4M_CHARSET_ENCODER);
         }
         catch (CharacterCodingException e) {
-            throw new IllegalStateException("Invalid business name", e);
+            throw new IllegalStateException("Invalid business name. Should never happen", e);
         }
     }
 
@@ -94,9 +94,6 @@ public class N4MQuery extends N4MMessage {
         checkNull(businessName, "businessName");
         if (businessName.length() > MAX_BUSINESS_NAME_LENGTH) {
             throw new ECException("Business name too long", ErrorCode.BADMSG);
-        }
-        if (businessName.length() < 1) {
-            throw new ECException("Business name can't be empty", ErrorCode.BADMSG);
         }
         if (!N4M_CHARSET_ENCODER.canEncode(businessName)) {
             throw new ECException("Invalid business name for N4M charset", ErrorCode.BADMSG);

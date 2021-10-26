@@ -25,23 +25,29 @@ public class BinaryReader {
         this.data = data;
     }
 
-    public int readByte() throws EOFException {
+    public byte readByte() throws EOFException {
         checkAligned();
         checkRange();
         return data[bytePos++];
     }
+    public int readUByte() throws EOFException {
+        return 0xFF & readByte();
+    }
 
-    public int readShort() throws EOFException {
-        int val = (readByte() & 0xFF) << 8;
-        val |= readByte() & 0xFF;
+    public short readShort() throws EOFException {
+        return (short) readUShort();
+    }
+    public int readUShort() throws EOFException {
+        int val = readUByte() << 8;
+        val |= readUByte();
         return val;
     }
 
     public int readInt() throws EOFException {
-        int val = (readByte() & 0xFF) << 24;
-        val |= (readByte() & 0xFF) << 16;
-        val |= (readByte() & 0xFF) << 8;
-        val |= readByte() & 0xFF;
+        int val = readUByte() << 24;
+        val |= readUByte() << 16;
+        val |= readUByte() << 8;
+        val |= readUByte();
         return val;
     }
     public long readUInt() throws EOFException {
@@ -49,15 +55,20 @@ public class BinaryReader {
     }
 
     public byte[] readBytes(int len) throws EOFException {
+        if (bytePos + len > data.length)
+            throw new EOFException("Tried to read out of bounds of data");
+        // check for negative or extremely large (wraps over int limit) len
+        if (bytePos + len < bytePos)
+            throw new IllegalArgumentException("Bad length");
         byte[] result = new byte[len];
         for (int i = 0; i < len; ++i) {
-            result[i] = (byte) readByte();
+            result[i] = readByte();
         }
         return result;
     }
 
     public String readLpStr(CharsetDecoder decoder) throws EOFException, CharacterCodingException {
-        int len = readByte();
+        int len = readUByte();
         var bytes = ByteBuffer.wrap(readBytes(len));
         return decoder.decode(bytes).toString();
     }

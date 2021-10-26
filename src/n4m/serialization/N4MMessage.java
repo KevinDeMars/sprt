@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.nio.charset.*;
 import java.util.Objects;
 
+import static sprt.serialization.Util.checkNull;
+
 /**
  * Represents generic portion of a N4M message and provides serialization/deserialization.
  */
@@ -46,8 +48,9 @@ public abstract class N4MMessage {
      * @throws NullPointerException if in is null
      */
     public static N4MMessage decode(byte[] in) throws ECException {
-        var reader = new BinaryReader(in);
+        var reader = new BinaryReader(checkNull(in, "in"));
 
+        // Read portion of header
         int version;
         boolean isResponse;
         int errCode;
@@ -66,6 +69,7 @@ public abstract class N4MMessage {
             throw new ECException("Bad version: " + version, ErrorCode.INCORRECTHEADER);
         }
 
+        // Delegate the rest to subclasses
         if (isResponse) {
             return N4MResponse.doDecode(reader, msgId, errCode);
         }
@@ -80,18 +84,17 @@ public abstract class N4MMessage {
      */
     public byte[] encode() {
         var bOut = new ByteArrayOutputStream();
-        var out = new BitDataOutputStream(bOut);
+        var out = new BinaryWriter(bOut);
         try {
             out.writeBits(VERSION, 4);
             doEncode(out);
         } catch (IOException e) {
-            // TODO do something
-            e.printStackTrace();
+            throw new RuntimeException("Couldn't write to byte output stream. This should never happen");
         }
         return bOut.toByteArray();
     }
 
-    protected abstract void doEncode(BitDataOutputStream out) throws IOException;
+    protected abstract void doEncode(BinaryWriter out) throws IOException;
 
     /**
      * Return message ID

@@ -56,7 +56,7 @@ public class N4MResponse extends N4MMessage {
         List<ApplicationEntry> entries = new ArrayList<>();
         try {
             timestamp = reader.readUInt();
-            appCount = reader.readByte();
+            appCount = reader.readUByte();
             for (int i = 0; i < appCount; ++i) {
                 entries.add(readAppEntry(reader));
             }
@@ -82,12 +82,12 @@ public class N4MResponse extends N4MMessage {
     }
 
     @Override
-    protected void doEncode(BitDataOutputStream out) throws IOException {
+    protected void doEncode(BinaryWriter out) throws IOException {
         // Finish writing header
         out.writeBit(1); // 1 for response
         out.writeBits(errorCode.getErrorCodeNum(), 3);
         out.writeByte(msgId);
-        // Data
+        // Write data
         out.writeInt((int) timestamp);
         out.writeByte(applications.size());
         for (var entry : applications) {
@@ -96,7 +96,7 @@ public class N4MResponse extends N4MMessage {
                 out.writeLpStr(entry.getApplicationName(), N4M_CHARSET_ENCODER);
             }
             catch (CharacterCodingException e) {
-                throw new IllegalStateException("Application name has invalid characters", e);
+                throw new IllegalStateException("Application name has invalid characters. Should never happen.", e);
             }
         }
     }
@@ -138,7 +138,7 @@ public class N4MResponse extends N4MMessage {
         if (applications.size() > MAX_APPLICATION_COUNT) {
             throw new ECException("applications list is too long", ErrorCode.BADMSG);
         }
-        this.applications = applications;
+        this.applications = List.copyOf(applications); // defensive copy
     }
 
     /**
@@ -157,9 +157,8 @@ public class N4MResponse extends N4MMessage {
      * @throws ECException if validation fails (BADMSG)
      */
     public void setTimestamp(long timestamp) throws ECException {
-        // TODO is there a min timestamp?
-        if (timestamp > dateToTimestamp(new Date())) {
-            throw new ECException("Timestamp is in the future", ErrorCode.BADMSG);
+        if (timestamp < 0) {
+            throw new ECException("Timestamp cannot be negative", ErrorCode.BADMSG);
         }
         this.timestamp = timestamp;
     }

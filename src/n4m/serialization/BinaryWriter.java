@@ -14,23 +14,18 @@ import java.io.OutputStream;
 import java.nio.CharBuffer;
 import java.nio.charset.CharsetEncoder;
 
-public class BitDataOutputStream {
+public class BinaryWriter {
     DataOutputStream dout;
     byte partialByte = 0;
     int bitIdx = 0;
 
-    public BitDataOutputStream(OutputStream out) {
+    public BinaryWriter(OutputStream out) {
         dout = new DataOutputStream(out);
     }
 
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void writeBytes(byte[] b, int off, int len) throws IOException {
         checkAligned();
         dout.write(b, off, len);
-    }
-
-    public void write(int b) throws IOException {
-        checkAligned();
-        dout.write(b);
     }
 
     public void writeByte(int v) throws IOException {
@@ -48,17 +43,12 @@ public class BitDataOutputStream {
         dout.writeInt(v);
     }
 
-    public void writeLong(long v) throws IOException {
-        checkAligned();
-        dout.writeLong(v);
-    }
-
     public void writeBit(int v) throws IOException {
         partialByte = (byte)((partialByte << 1) | (v & 1));
         bitIdx++;
         if (bitIdx == 8) {
             bitIdx = 0;
-            write(partialByte);
+            writeByte(partialByte);
             partialByte = 0;
         }
     }
@@ -80,7 +70,7 @@ public class BitDataOutputStream {
         writeByte(str.length());
         var bytes = encoder.encode(CharBuffer.wrap(str.toCharArray()))
                 .array();
-        write(bytes, 0, bytes.length);
+        writeBytes(bytes, 0, bytes.length);
     }
 
     private void checkAligned() {

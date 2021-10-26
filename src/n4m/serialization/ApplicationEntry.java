@@ -77,10 +77,6 @@ public class ApplicationEntry {
         if (applicationName.length() > MAX_APPLICATION_NAME_LENGTH) {
             throw new ECException("Application name too long", ErrorCode.BADMSG);
         }
-        if (applicationName.length() == 0) {
-            // TODO do  this?
-            throw new ECException("Empty app name", ErrorCode.BADMSG);
-        }
         if (!N4MMessage.N4M_CHARSET_ENCODER.canEncode(applicationName)) {
             throw new ECException("Invalid application name for N4M charset", ErrorCode.BADMSG);
         }

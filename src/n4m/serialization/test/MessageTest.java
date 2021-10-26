@@ -16,6 +16,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import shared.serialization.test.EqualsAndHashCodeTests;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
@@ -57,7 +58,7 @@ public class MessageTest {
     void queryRejectBadParams() {
         var badIds = List.of(-1, 256, 100000, Integer.MAX_VALUE);
         String longName = "1234567890".repeat(500);
-        var badNames = List.of(longName, "", "piñata");
+        var badNames = List.of(longName, "piñata");
 
         for (String name : badNames) {
             assertThrows(ECException.class, () -> new N4MQuery(123, name).encode(), name);
@@ -70,9 +71,9 @@ public class MessageTest {
     @Test
     void responseRejectBadParams() {
         var badIds = List.of(-1, 256, 100000, Integer.MAX_VALUE);
-        var badTimestamps = List.of(dateToTimestamp(new Date()) + 1000);
+        var badTimestamps = List.of(-1);
 
-        var badAppNames = List.of("", "1234567890".repeat(500), "piñata");
+        var badAppNames = List.of("1234567890".repeat(500), "piñata", "Hola, ¿Cómo estás?");
         var badAccessCounts = List.of(-1, 100000);
 
         for (int id : badIds) {
@@ -113,20 +114,33 @@ public class MessageTest {
             new N4MQuery(100, "MyBusiness"),
             new N4MQuery(0, "Business1"),
             new N4MQuery(11, "Business1"),
-            new N4MQuery(100, "Business2")
+            new N4MQuery(100, "Business2"),
+            new N4MQuery(100, "a".repeat(200))
         );
     }
 
     static Stream<N4MResponse> validResponses() throws ECException {
+        var entry = new ApplicationEntry("Poll", 1234);
+        var longList = new ArrayList<ApplicationEntry>();
+        for (int i = 0; i < 150; ++i)
+            longList.add(entry);
+        var shortList = List.of(entry);
+        var recent = dateToTimestamp(new Date()) - 100;
+
         return Stream.of(
-                new N4MResponse(ErrorCode.NOERROR, 100, dateToTimestamp(new Date()) - 100, List.of(new ApplicationEntry("Poll", 100))),
+                new N4MResponse(ErrorCode.NOERROR, 100, recent, shortList),
                 new N4MResponse(ErrorCode.NOERROR, 100, 145, List.of()),
                 new N4MResponse(ErrorCode.INCORRECTHEADER, 100, 100, List.of()),
-                new N4MResponse(ErrorCode.SYSTEMERROR, 100, 111, List.of())
+                new N4MResponse(ErrorCode.SYSTEMERROR, 100, 111, List.of()),
+                new N4MResponse(ErrorCode.NOERROR, 0, 111, longList)
         );
     }
 
     static Stream<N4MMessage> validMessages() throws ECException {
         return concat(validQueries(), validResponses());
+    }
+
+    static byte[] makeFakeN4MMessage() {
+
     }
 }
