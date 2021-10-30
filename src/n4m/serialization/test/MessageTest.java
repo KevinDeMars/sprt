@@ -16,6 +16,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import shared.serialization.test.EqualsAndHashCodeTests;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -23,8 +25,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Stream.concat;
 import static n4m.serialization.N4MResponse.dateToTimestamp;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class MessageTest {
 
@@ -109,6 +110,30 @@ public class MessageTest {
         assertEquals(m, decoded);
     }
 
+    @ParameterizedTest
+    @MethodSource("invalidMessages")
+    void testBadMsgBytes(BadMsg msg) {
+        try {
+            N4MMessage.decode(msg.data);
+        } catch (ECException e) {
+            assertEquals(msg.expectedErr, e.getErrorCodeType());
+            return;
+        }
+
+        fail("Should have thrown ECException");
+    }
+
+    @ParameterizedTest
+    @MethodSource("validMessages")
+    void testChopUpMsg(N4MMessage msg) {
+        var bytes = msg.encode();
+        for (int size = 0; size < bytes.length; ++size) {
+            byte[] subBytes = new byte[size];
+            System.arraycopy(bytes, 0, subBytes, 0, size);
+            assertThrows(ECException.class, () -> N4MMessage.decode(subBytes));
+        }
+    }
+
     static Stream<N4MQuery> validQueries() throws ECException {
         return Stream.of(
             new N4MQuery(100, "MyBusiness"),
@@ -140,7 +165,52 @@ public class MessageTest {
         return concat(validQueries(), validResponses());
     }
 
-    static byte[] makeFakeN4MMessage() {
+    record BadMsg(ErrorCode expectedErr, byte[] data) {
 
     }
+
+    static Stream<BadMsg> invalidMessages() throws IOException {
+        return Stream.of(
+                // Wrong version
+                new BadMsg(ErrorCode.INCORRECTHEADER, makeFakeN4MMessage(1, false, 0, (byte)111, new byte[] {2, 'h', 'i'})),
+                // query has error code
+                new BadMsg(ErrorCode.INCORRECTHEADER, makeFakeN4MMessage(2, false, 2, (byte)111, new byte[] {2, 'h', 'i'})),
+                // name length too short
+                new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, false, 0, (byte)111, new byte[] {0, 'h', 'i'})),
+                // name length too long
+                new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, false, 0, (byte)111, new byte[] {127, 'h', 'i'})),
+                // empty data
+                new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, false, 0, (byte)111, new byte[] {})),
+                // invalid chars
+                new BadMsg(ErrorCode.BADMSG, makeFakeN4MMessage(2, false, 0, (byte)111, new byte[] {2, (byte)0x90, (byte)0xFF})),
+
+
+                // invalid response error code
+                new BadMsg(ErrorCode.INCORRECTHEADER, makeFakeN4MMessage(2, true, 6, (byte)111, new byte[] {1,1,1,1, 0})),
+                // only half of timestamp
+                new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, true, 6, (byte)111, new byte[] {1,1})),
+                // empty data
+                new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, true, 6, (byte)111, new byte[] {})),
+                // not enough app entries
+                new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, true, 0, (byte)111, new byte[] {1,1,1,1, 2})),
+                // too many app entries
+                new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, true, 0, (byte)111, new byte[] {1,1,1,1, 1,   3,3, 2,'h','i', 3,3, 2,'h','i'})),
+                // app entry name too short
+                new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, true, 0, (byte)111, new byte[] {1,1,1,1, 1,   3,3, 10,'h','i'})),
+                // app entry name too long
+                new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, true, 0, (byte)111, new byte[] {1,1,1,1, 1,   3,3, 2,'a','a','a','a','a'}))
+        );
+    }
+
+    static byte[] makeFakeN4MMessage(int version, boolean isResponse, int errCode, byte msgId, byte[] data) throws IOException {
+        var out = new ByteArrayOutputStream();
+        var writer = new BinaryWriter(out);
+        writer.writeBits(version, 4);
+        writer.writeBit(isResponse ? 1 : 0);
+        writer.writeBits(errCode, 3);
+        writer.writeByte(msgId);
+        writer.writeBytes(data);
+        return out.toByteArray();
+    }
+
 }

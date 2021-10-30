@@ -21,6 +21,7 @@ import static sprt.serialization.Util.deepCheckNull;
 
 /** Represents an N4M response and provides serialization/deserialization */
 public class N4MResponse extends N4MMessage {
+    /** Maximum number of ApplicationEntry in the list */
     public static final int MAX_APPLICATION_COUNT = 0xFF;
 
     // One entry for each application that the requesting business owns
@@ -72,7 +73,7 @@ public class N4MResponse extends N4MMessage {
 
     protected static ApplicationEntry readAppEntry(BinaryReader reader) throws EOFException, ECException {
         int useCount = reader.readShort();
-        String name = null;
+        String name;
         try {
             name = reader.readLpStr(N4M_CHARSET_DECODER);
         } catch (CharacterCodingException e) {
@@ -163,10 +164,20 @@ public class N4MResponse extends N4MMessage {
         this.timestamp = timestamp;
     }
 
+    /**
+     * Converts Date to timestamp (number of seconds since 1970-01-01).
+     * @param d date to convert
+     * @return equivalent timestamp
+     */
     public static long dateToTimestamp(Date d) {
         return d.getTime() / 1000;
     }
 
+    /**
+     * Converts timestamp (number of seconds since 1970-01-01) to Date.
+     * @param timestamp timestamp to convert
+     * @return equivalent Date
+     */
     public static Date timestampToDate(long timestamp) {
         return new Date(timestamp * 1000);
     }

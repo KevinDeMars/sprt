@@ -8,8 +8,9 @@
 
 package n4m.serialization;
 
+/** Exception with an error code, used by N4M */
 public class ECException extends Exception {
-    // type of error, e.g. INCORRECTHEADER
+    /** type of error, e.g. INCORRECTHEADER */
     private final ErrorCode errorCodeType;
 
     /**

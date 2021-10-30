@@ -20,19 +20,27 @@ import static sprt.serialization.Util.checkNull;
  * Represents generic portion of a N4M message and provides serialization/deserialization.
  */
 public abstract class N4MMessage {
+    /** Maximum value for message ID */
+    public static final int MAX_MSG_ID = 0xFF;
+    /** Current protocol version */
+    public static final byte VERSION = 0b0010;
+
+    /** Charset used for Strings within messages */
     public static final Charset N4M_CHARSET = StandardCharsets.US_ASCII;
+    // Used to convert Strings to bytes
     protected static final CharsetEncoder N4M_CHARSET_ENCODER = N4M_CHARSET.newEncoder()
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT);
+    // used to convert bytes to Strings
     protected static final CharsetDecoder N4M_CHARSET_DECODER = N4M_CHARSET.newDecoder()
             .onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT);
-    public static final int MAX_MSG_ID = 0xFF;
-    public static final byte VERSION = 0b0010;
+
+
 
     // randomly generated number that client uses to map server responses to outstanding requests
     // range: 0-255
-    int msgId;
+    protected int msgId;
 
     protected N4MMessage(int msgId) throws ECException {
         setMsgId(msgId);

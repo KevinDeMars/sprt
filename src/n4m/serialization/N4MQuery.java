@@ -17,6 +17,7 @@ import static sprt.serialization.Util.checkNull;
 
 /** Represents an N4M query and provides serialization/deserialization */
 public class N4MQuery extends N4MMessage {
+    /** Maximum length for businessName */
     public static final int MAX_BUSINESS_NAME_LENGTH = 0xFF;
     // Name of business making the request
     private String businessName;

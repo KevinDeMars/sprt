@@ -16,7 +16,9 @@ import static sprt.serialization.Util.checkNull;
  * Represents one application and its access count
  */
 public class ApplicationEntry {
+    /** Maximum value for accessCount */
     public static final int MAX_ACCESS_COUNT = 0xFFFF;
+    /** Maximum length for applicationName */
     public static final int MAX_APPLICATION_NAME_LENGTH = 0xFF;
 
     // number of times this app was accessed

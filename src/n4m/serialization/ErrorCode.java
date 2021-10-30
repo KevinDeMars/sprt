@@ -8,6 +8,7 @@
 
 package n4m.serialization;
 
+/** Type of error in N4M protocol */
 public enum ErrorCode {
     /** No error */
     NOERROR(0),
@@ -22,7 +23,7 @@ public enum ErrorCode {
 
     private final int errorCodeNum;
 
-    private ErrorCode(int num) {
+    ErrorCode(int num) {
         this.errorCodeNum = num;
     }
 
