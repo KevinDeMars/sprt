@@ -30,6 +30,14 @@ public class BinaryReader {
     }
 
     /**
+     * Checks whether there is more data to be read.
+     * @return true if data can be read; else, false
+     */
+    public boolean hasNext() {
+        return bytePos < data.length;
+    }
+
+    /**
      * Reads a signed byte.
      * @return byte read
      * @throws EOFException if no more data exists

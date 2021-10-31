@@ -66,6 +66,10 @@ public class N4MResponse extends N4MMessage {
             throw new ECException("Message too short", ErrorCode.BADMSGSIZE, e);
         }
 
+        if (reader.hasNext()) {
+            throw new ECException("Unexpected extra data", ErrorCode.BADMSGSIZE);
+        }
+
         var ec = ErrorCode.valueOf(errorCode);
         return new N4MResponse(ec, msgId, timestamp, entries);
     }
@@ -116,7 +120,7 @@ public class N4MResponse extends N4MMessage {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("N4M RESPONSE: MsgID=%d, Error=%s, Time=%s: ", msgId, errorCode, timestampToDate(timestamp)));
         for (var app : this.applications)
-            sb.append(String.format("%s(%d) ", app.getApplicationName(), app.getAccessCount()));
+            sb.append(app).append(" ");
         return sb.toString();
     }
 

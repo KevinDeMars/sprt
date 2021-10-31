@@ -91,7 +91,7 @@ public class ApplicationEntry {
      */
     @Override
     public String toString() {
-        return super.toString();
+        return String.format("%s(%d)", getApplicationName(), getAccessCount());
     }
 
     @Override

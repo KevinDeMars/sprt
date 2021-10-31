@@ -19,6 +19,7 @@ import shared.serialization.test.EqualsAndHashCodeTests;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
@@ -134,13 +135,47 @@ public class MessageTest {
         }
     }
 
+    @Test
+    void testTooManyEntries() {
+        try {
+            var entry = new ApplicationEntry("Poll", 123);
+            var list = new ArrayList<ApplicationEntry>();
+            for (int i = 0; i < 256; ++i)
+                list.add(entry);
+            new N4MResponse(ErrorCode.NOERROR, 111, 111, list);
+        } catch (ECException e) {
+            assertEquals(e.getErrorCodeType(), ErrorCode.BADMSG);
+            return;
+        }
+
+        fail("Should have thrown BADMSG exception");
+    }
+
+    @Test
+    void testToString() throws ECException {
+        var msg1 = new N4MQuery(111, "Bus1");
+        assertEquals("N4M QUERY: MsgID=111, BusName=Bus1", msg1.toString());
+        var c = Calendar.getInstance();
+        c.set(2021, Calendar.OCTOBER, 31, 11, 23, 45);
+        var ts = dateToTimestamp(c.getTime());
+
+        var msg2 = new N4MResponse(ErrorCode.NOERROR, 111, ts, List.of(
+                new ApplicationEntry("Poll", 222),
+                new ApplicationEntry("Guess", 333)
+        ));
+        assertEquals(String.format("N4M RESPONSE: MsgID=111, Error=NOERROR, Time=%s: Poll(222) Guess(333) ", c.getTime()),
+                msg2.toString()
+        );
+    }
+
     static Stream<N4MQuery> validQueries() throws ECException {
         return Stream.of(
             new N4MQuery(100, "MyBusiness"),
             new N4MQuery(0, "Business1"),
-            new N4MQuery(11, "Business1"),
+            new N4MQuery(255, "Business1"),
             new N4MQuery(100, "Business2"),
-            new N4MQuery(100, "a".repeat(200))
+            new N4MQuery(100, "a".repeat(200)),
+            new N4MQuery(100, "")
         );
     }
 
@@ -150,6 +185,7 @@ public class MessageTest {
         for (int i = 0; i < 150; ++i)
             longList.add(entry);
         var shortList = List.of(entry);
+        var medList = List.of(entry, new ApplicationEntry("Yeet", 123), new ApplicationEntry("Hello", 5));
         var recent = dateToTimestamp(new Date()) - 100;
 
         return Stream.of(
@@ -157,7 +193,8 @@ public class MessageTest {
                 new N4MResponse(ErrorCode.NOERROR, 100, 145, List.of()),
                 new N4MResponse(ErrorCode.INCORRECTHEADER, 100, 100, List.of()),
                 new N4MResponse(ErrorCode.SYSTEMERROR, 100, 111, List.of()),
-                new N4MResponse(ErrorCode.NOERROR, 0, 111, longList)
+                new N4MResponse(ErrorCode.NOERROR, 0, 111, longList),
+                new N4MResponse(ErrorCode.NOERROR, 0, 0xF0_00_00_00L, medList)
         );
     }
 
@@ -197,6 +234,8 @@ public class MessageTest {
                 new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, true, 0, (byte)111, new byte[] {1,1,1,1, 1,   3,3, 2,'h','i', 3,3, 2,'h','i'})),
                 // app entry name too short
                 new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, true, 0, (byte)111, new byte[] {1,1,1,1, 1,   3,3, 10,'h','i'})),
+                // app entry name invalid chars
+                new BadMsg(ErrorCode.BADMSG, makeFakeN4MMessage(2, true, 0, (byte)111, new byte[] {1,1,1,1, 1,   3,3, 2,(byte)0xFF,(byte)0x91})),
                 // app entry name too long
                 new BadMsg(ErrorCode.BADMSGSIZE, makeFakeN4MMessage(2, true, 0, (byte)111, new byte[] {1,1,1,1, 1,   3,3, 2,'a','a','a','a','a'}))
         );

@@ -67,7 +67,7 @@ public abstract class N4MMessage {
             version = reader.readBits(4);
             isResponse = reader.readBit() == 1;
             errCode = reader.readBits(3);
-            msgId = reader.readByte();
+            msgId = reader.readUByte();
         }
         catch (EOFException e) {
             throw new ECException("Header too short", ErrorCode.BADMSGSIZE, e);

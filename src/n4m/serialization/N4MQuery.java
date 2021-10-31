@@ -48,6 +48,11 @@ public class N4MQuery extends N4MMessage {
         catch (CharacterCodingException e) {
             throw new ECException("Business name has invalid chars", ErrorCode.BADMSG, e);
         }
+
+        if (reader.hasNext()) {
+            throw new ECException("Business name is shorter than length prefix", ErrorCode.BADMSGSIZE);
+        }
+
         return new N4MQuery(msgId, busName);
     }
 
