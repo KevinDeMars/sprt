@@ -8,6 +8,7 @@
 
 package sprt.app.server;
 
+import shared.app.AppUtil;
 import sprt.serialization.*;
 
 import java.io.IOException;
@@ -50,8 +51,8 @@ public class Server {
             return;
         }
 
-        int port = parseIntOrExit("port", args[0], 1, 65535);
-        int numThreads = parseIntOrExit("numThreads", args[1], 1, Integer.MAX_VALUE);
+        int port = AppUtil.parseIntOrExit("port", args[0], 1, 65535, Error.BadArg.code);
+        int numThreads = AppUtil.parseIntOrExit("numThreads", args[1], 1, Integer.MAX_VALUE, Error.BadArg.code);
         setupLogger();
 
         try {
@@ -61,23 +62,7 @@ public class Server {
         }
     }
 
-    private static int parseIntOrExit(String varname, String str, int min, int max) {
-        int x = 0;
-        try {
-            x = Integer.parseInt(str);
-        }
-        catch (NumberFormatException e) {
-            System.err.println(varname + " must be an integer");
-            System.exit(Error.BadArg.code);
-        }
 
-        if (x < min || x > max) {
-            System.err.println(varname + " must be >" + min + " and <" + max);
-            System.exit(Error.BadArg.code);
-        }
-
-        return x;
-    }
 
     private static void setupLogger() {
         try {
