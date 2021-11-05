@@ -119,7 +119,7 @@ public abstract class N4MMessage {
      */
     public void setMsgId(int msgId) throws ECException {
         if (msgId > MAX_MSG_ID || msgId < 0) {
-            throw new ECException("msgId out of range", ErrorCode.INCORRECTHEADER);
+            throw new ECException("msgId out of range", ErrorCode.BADMSG);
         }
         this.msgId = msgId;
     }

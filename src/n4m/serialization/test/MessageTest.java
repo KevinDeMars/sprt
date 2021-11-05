@@ -185,7 +185,7 @@ public class MessageTest {
         for (int i = 0; i < 150; ++i)
             longList.add(entry);
         var shortList = List.of(entry);
-        var medList = List.of(entry, new ApplicationEntry("Yeet", 123), new ApplicationEntry("Hello", 5));
+        var medList = List.of(entry, new ApplicationEntry("Yeet", 123), new ApplicationEntry("Hello", 65535));
         var recent = dateToTimestamp(new Date()) - 100;
 
         return Stream.of(

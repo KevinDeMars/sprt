@@ -23,6 +23,8 @@ import static sprt.serialization.Util.deepCheckNull;
 public class N4MResponse extends N4MMessage {
     /** Maximum number of ApplicationEntry in the list */
     public static final int MAX_APPLICATION_COUNT = 0xFF;
+    /** Max timestamp value */
+    public static final long MAX_TIMESTAMP = 0xFFFFFFFFL;
 
     // One entry for each application that the requesting business owns
     private List<ApplicationEntry> applications;
@@ -76,7 +78,7 @@ public class N4MResponse extends N4MMessage {
 
 
     protected static ApplicationEntry readAppEntry(BinaryReader reader) throws EOFException, ECException {
-        int useCount = reader.readShort();
+        int useCount = reader.readUShort();
         String name;
         try {
             name = reader.readLpStr(N4M_CHARSET_DECODER);
@@ -162,8 +164,8 @@ public class N4MResponse extends N4MMessage {
      * @throws ECException if validation fails (BADMSG)
      */
     public void setTimestamp(long timestamp) throws ECException {
-        if (timestamp < 0) {
-            throw new ECException("Timestamp cannot be negative", ErrorCode.BADMSG);
+        if (timestamp < 0 || timestamp > MAX_TIMESTAMP) {
+            throw new ECException("Timestamp out of range", ErrorCode.BADMSG);
         }
         this.timestamp = timestamp;
     }
