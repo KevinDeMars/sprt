@@ -8,8 +8,13 @@
 
 package n4m.serialization;
 
+import java.io.Serial;
+
 /** Exception with an error code, used by N4M */
 public class ECException extends Exception {
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     /** type of error, e.g. INCORRECTHEADER */
     private final ErrorCode errorCodeType;
 
