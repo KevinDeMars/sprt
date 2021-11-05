@@ -91,7 +91,7 @@ public class Poll extends ServerApp {
         }
         private static final Map<String, RestaurantOffer> OFFERS = Map.of(
                 "MEXICAN", new RestaurantOffer("Tacopia", 20),
-                "ITALIAN", new RestaurantOffer("Pastastic", 25)
+                "ITALIAN", new RestaurantOffer("Pastatic", 25)
         );
 
         private final String fName, lName;
@@ -106,7 +106,7 @@ public class Poll extends ServerApp {
         }
         @Override
         public String prompt() {
-            return fName + "'s Food mood> ";
+            return fName + "'s Food Mood> ";
         }
 
         /**
@@ -129,7 +129,7 @@ public class Poll extends ServerApp {
                     repeat = Integer.parseInt(req.getCookieList().getValue("Repeat"));
                 }
                 catch (NumberFormatException e) {
-                    return StateResult.exit(Status.ERROR, "Repeat (in cookie list) must be integer");
+                    return StateResult.exit(Status.ERROR, "Repeat (in cookie list) must be integer", new CookieList().add("Repeat", "0"));
                 }
             }
             ++repeat;
