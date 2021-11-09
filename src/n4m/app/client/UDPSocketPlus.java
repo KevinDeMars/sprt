@@ -9,62 +9,95 @@
 package n4m.app.client;
 
 import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
 
+/**
+ * Wraps a UDP socket (DatagramSocket) and adds extra functionality.
+ */
 public class UDPSocketPlus {
-    //private final int port;
-    //private final String peer;
-    //private final InetAddress peerAddress;
+    // Max size for a UDP segment.
+    private static final int MAX_DATAGRAM_SIZE = 64 * 1024;
+    // wrapped plain socket
     private final DatagramSocket socket;
-    private int maxTries = 5;
 
-    public UDPSocketPlus() throws UnknownHostException, SocketException {
-        //this.port = port;
-        //this.peer = peer;
-        //peerAddress = InetAddress.getByName(peer);
+    /**
+     * Creates new UDP socket.
+     * @throws SocketException if socket couldn't be opened
+     */
+    public UDPSocketPlus() throws SocketException {
         socket = new DatagramSocket();
     }
 
+    /**
+     * See {@link DatagramSocket#send(DatagramPacket)}.
+     * @param pkt Packet to send
+     * @throws IOException if I/O error occurs
+     */
     public void send(DatagramPacket pkt) throws IOException {
         socket.send(pkt);
     }
 
+    /**
+     * Convenience method that creates and sends a DatagramPacket for the data.
+     * @param data data to send
+     * @param peerAddr IP address of peer
+     * @param peerPort port number of peer
+     * @throws IOException if I/O error occurs
+     */
     public void send(byte[] data, InetAddress peerAddr, int peerPort) throws IOException {
         var pkt = new DatagramPacket(data, data.length, peerAddr, peerPort);
         this.send(pkt);
     }
 
-    public DatagramPacket receive(int maxLength) throws IOException {
+    /**
+     * Blocks and receives a packet containing at most maxLength bytes.
+     * @param maxLength maximum size of data to receive
+     * @return the received packet
+     * @throws IOException if I/O error occurs
+     * @throws PacketTruncatedException if the received packet is larger than maxLength
+     */
+    public DatagramPacket receive(int maxLength) throws IOException, PacketTruncatedException {
+        // Extra byte is to detect truncation
         DatagramPacket pkt = new DatagramPacket(new byte[maxLength + 1], maxLength + 1);
-
-        int tries = 0;
-        while (tries < maxTries) {
-            try {
-                socket.receive(pkt);
-
-                //if (!pkt.getAddress().equals(peerAddress)) {
-                //    throw new IOException("Got ")
-                //}
-
-                if (pkt.getLength() > maxLength) {
-                    throw new PacketTruncatedException("Got packet above max length of " + maxLength);
-                }
-
-                return pkt;
-            }
-            catch (InterruptedIOException e) {
-                ++tries;
-                System.out.println("Timed out. " + (maxTries - tries) + " more tries.");
-            }
+        socket.receive(pkt);
+        if (pkt.getLength() > maxLength) {
+            throw new PacketTruncatedException("Got packet exceeding max length of " + maxLength);
         }
-        throw new SocketTimeoutException("Couldn't receive message.");
+        return pkt;
     }
+
+    /**
+     * Blocks and receives a packet with up to the maximum UDP segment size.
+     * @return received packet
+     * @throws IOException if I/O error occurs
+     */
+    public DatagramPacket receive() throws IOException {
+        return receive(MAX_DATAGRAM_SIZE);
+    }
+
+    /**
+     * Blocks and receives a packet from a specific peer containing at most maxLength bytes.
+     * @param maxLength maximum size of data to receive
+     * @return the received packet
+     * @throws IOException if I/O error occurs, or a packet from a different peer is received
+     * @throws PacketTruncatedException if the received packet is larger than maxLength
+     */
     public DatagramPacket receive(int maxLength, InetAddress peerAddress) throws IOException {
         var pkt = receive(maxLength);
         if (!pkt.getAddress().equals(peerAddress)) {
             throw new IOException("Got packet from unknown source");
         }
         return pkt;
+    }
+    /**
+     * Blocks and receives a packet from a specific peer with up to the maximum UDP segment size.
+     * @return received packet
+     * @throws IOException if I/O error occurs, or a packet from a different peer is received
+     */
+    public DatagramPacket receive(InetAddress peerAddress) throws IOException {
+        return receive(MAX_DATAGRAM_SIZE, peerAddress);
     }
 }
