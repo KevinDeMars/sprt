@@ -9,10 +9,7 @@
 package n4m.app.client;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 
 /**
  * Wraps a UDP socket (DatagramSocket) and adds extra functionality.
@@ -24,11 +21,22 @@ public class UDPSocketPlus {
     private final DatagramSocket socket;
 
     /**
-     * Creates new UDP socket.
+     * Creates new UDP socket bound to an ephemeral port.
      * @throws SocketException if socket couldn't be opened
      */
     public UDPSocketPlus() throws SocketException {
-        socket = new DatagramSocket();
+        this(0);
+    }
+
+    /**
+     * Creates new UDP socket bound to given port.
+     * @param port port to bind to
+     * @throws SocketException if socket can't be opened or bound to given port
+     */
+    public UDPSocketPlus(int port) throws SocketException {
+        socket = new DatagramSocket(null);
+        socket.setReuseAddress(true);
+        socket.bind(new InetSocketAddress(port));
     }
 
     /**

@@ -8,6 +8,8 @@
 
 package sprt.app.server;
 
+import n4m.app.server.N4MServer;
+import n4m.serialization.ApplicationEntry;
 import shared.app.AppUtil;
 import sprt.serialization.*;
 
@@ -17,10 +19,12 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.*;
+
+import static n4m.serialization.N4MResponse.dateToTimestamp;
 
 /**
  * Server implementing SPRT Protocol.
@@ -42,7 +46,7 @@ public class Server {
     }
 
     /**
-     * Runs a server with the given port and # threads.
+     * Runs both a SPRT server and an N4M server with the given port and # threads.
      * @param args port (1-65535), numThreads (1+)
      */
     public static void main(String[] args) {
@@ -55,14 +59,21 @@ public class Server {
         int numThreads = AppUtil.parseIntOrExit("numThreads", args[1], 1, Integer.MAX_VALUE, Error.BadArg.code);
         setupLogger();
 
+        Server sprtServer;
+        N4MServer n4mServer = null;
         try {
-            new Server(port, numThreads).go();
+            sprtServer = new Server(port, numThreads);
+            n4mServer = new N4MServer(sprtServer, port, numThreads);
         } catch (IOException e) {
             LOG.log(Level.SEVERE, "I/O error creating server instance", e);
+            return;
         }
+
+        // Run n4m server in separate thread
+        new Thread(n4mServer::go).start();
+        // Run sprt server in this thread
+        sprtServer.go();
     }
-
-
 
     private static void setupLogger() {
         try {
@@ -93,6 +104,11 @@ public class Server {
     private final ExecutorService threadPool;
     private final ServerSocket socket;
 
+    // Tracks usages of each app
+    private final Map<ServerApp, Integer> accessCts = new HashMap<>();
+    // Timestamp last app was run
+    private long lastAppTimestamp = 0;
+
     /**
      * Creates server with the given port and # threads.
      * @param port port to run on, between 1 and 65535
@@ -112,23 +128,13 @@ public class Server {
     public void go() {
         LOG.info("Listening on port " + this.socket.getLocalPort());
 
-        int numAcceptFails = 0;
         while (true) {
-            // Repeatedly accept connections and handle in thread pool.
-            // If too many socket.accept() fails in a row, exit.
             try {
                 Socket clientSock = socket.accept();
-                numAcceptFails = 0;
                 threadPool.execute(() -> handleClient(clientSock));
             }
             catch (IOException e) {
-                ++numAcceptFails;
-                if (numAcceptFails < NUM_ACCEPT_TRIES)
-                    LOG.log(Level.WARNING, "Error accepting socket", e);
-                else {
-                    LOG.log(Level.SEVERE, "Error accepting socket; exiting", e);
-                    System.exit(Error.TooManyAcceptFails.code);
-                }
+                LOG.log(Level.WARNING, "Error accepting socket", e);
             }
         }
     }
@@ -182,6 +188,8 @@ public class Server {
         if (app.isPresent()) {
             // Run app. Send error message if ValidationException or server causes these two exceptions
             try {
+                safeIncrementCount(app.get());
+                lastAppTimestamp = dateToTimestamp(new Date());
                 runApp(cliSock, in, out, app.get(), req);
             } catch (ValidationException e) {
                 LOG.log(Level.INFO, logPrefix(cliSock) + "Bad data: " + e.getMessage(), e);
@@ -245,6 +253,34 @@ public class Server {
             return Optional.empty();
         }
         return Optional.of((ServerApp) instance);
+    }
+
+    private void safeIncrementCount(ServerApp app) {
+        if (accessCts.containsKey(app)) {
+            int accessCt = accessCts.get(app);
+            if (accessCt < ApplicationEntry.MAX_ACCESS_COUNT)
+                ++accessCt;
+            accessCts.put(app, accessCt);
+        }
+        else {
+            accessCts.put(app, 1);
+        }
+    }
+
+    /**
+     * Gets a read-only view of access counts for all apps.
+     * @return map of app => access count.
+     */
+    public Map<ServerApp, Integer> getAccessCounts() {
+        return Collections.unmodifiableMap(accessCts);
+    }
+
+    /**
+     * Return timestamp of last time an app was run
+     * @return timestamp (seconds since 1970-01-01)
+     */
+    public long getLastAppTimestamp() {
+        return lastAppTimestamp;
     }
 
 

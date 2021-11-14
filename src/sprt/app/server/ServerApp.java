@@ -14,6 +14,7 @@ import sprt.serialization.Status;
 import sprt.serialization.ValidationException;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Objects;
 
 /**
  * An application that can run on a SPRT server
@@ -68,5 +69,26 @@ public abstract class ServerApp {
      */
     public State getState() {
         return this.state;
+    }
+
+    public String getName() {
+        return this.getClass().getSimpleName();
+    }
+
+    /**
+     * Returns whether this is the "same app" as o, meaning the classes
+     *  are the same. (e.g. a Poll instance equals a Poll instance; a Poll instance != a Guess instance)
+     * @param o other object
+     * @return whether these are the same apps
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        return o != null && getClass() == o.getClass();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this.getClass());
     }
 }
