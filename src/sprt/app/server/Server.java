@@ -22,9 +22,11 @@ import java.net.SocketTimeoutException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static n4m.serialization.N4MResponse.dateToTimestamp;
+import static shared.app.AppUtil.setupLogger;
 
 /**
  * Server implementing SPRT Protocol.
@@ -57,7 +59,7 @@ public class Server {
 
         int port = AppUtil.parseIntOrExit("port", args[0], 1, 65535, Error.BadArg.code);
         int numThreads = AppUtil.parseIntOrExit("numThreads", args[1], 1, Integer.MAX_VALUE, Error.BadArg.code);
-        setupLogger();
+        setupLogger(LOG, "connections.log");
 
         Server sprtServer;
         N4MServer n4mServer = null;
@@ -75,31 +77,7 @@ public class Server {
         sprtServer.go();
     }
 
-    private static void setupLogger() {
-        try {
-            LOG.setLevel(Level.ALL);
 
-            // Remove default console handler
-            var defaultHandlers = Logger.getLogger("").getHandlers();
-            for (var hnd : defaultHandlers) {
-                Logger.getLogger("").removeHandler(hnd);
-            }
-
-            var hnd = new FileHandler("connections.log");
-            hnd.setLevel(Level.ALL);
-            //System.setProperty("java.util.logging.SimpleFormatter.format", "")
-            hnd.setFormatter(new SimpleFormatter());
-            LOG.addHandler(hnd);
-
-            var hnd2 = new ConsoleHandler();
-            hnd2.setLevel(Level.ALL);
-            LOG.addHandler(hnd2);
-        } catch (IOException e) {
-            System.err.println("Couldn't set up log: " + e);
-            e.printStackTrace();
-            // Continue without logging
-        }
-    }
 
     private final ExecutorService threadPool;
     private final ServerSocket socket;

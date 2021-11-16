@@ -89,6 +89,7 @@ public class UDPSocketPlus {
     /**
      * Blocks and receives a packet from a specific peer containing at most maxLength bytes.
      * @param maxLength maximum size of data to receive
+     * @param peerAddress expected address to receive from.
      * @return the received packet
      * @throws IOException if I/O error occurs, or a packet from a different peer is received
      * @throws PacketTruncatedException if the received packet is larger than maxLength
@@ -101,7 +102,8 @@ public class UDPSocketPlus {
         return pkt;
     }
     /**
-     * Blocks and receives a packet from a specific peer with up to the maximum UDP segment size.
+     * Blocks and receives a packet from a specific peer up to the maximum UDP segment size.
+     * @param peerAddress expected address to receive from.
      * @return received packet
      * @throws IOException if I/O error occurs, or a packet from a different peer is received
      */

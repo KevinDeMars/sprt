@@ -71,10 +71,6 @@ public abstract class ServerApp {
         return this.state;
     }
 
-    public String getName() {
-        return this.getClass().getSimpleName();
-    }
-
     /**
      * Returns whether this is the "same app" as o, meaning the classes
      *  are the same. (e.g. a Poll instance equals a Poll instance; a Poll instance != a Guess instance)

@@ -25,18 +25,37 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static shared.app.AppUtil.setupLogger;
+
+/**
+ * Server implementing N4M protocol (depends on sprt server).
+ */
 public class N4MServer {
     private static final Logger LOG = Logger.getLogger(N4MServer.class.getName());
+    static {
+        setupLogger(LOG, "n4m.log");
+    }
+
     private final UDPSocketPlus socket;
     private final ExecutorService threadPool;
     private final Server sprtServer;
 
+    /**
+     * Create N4M server that responds to queries about the given sprt server.
+     * @param sprtServer Server to get usage data from
+     * @param port Port to listen for incoming requests from
+     * @param numThreads maximum threads for handling N4M queries
+     * @throws SocketException if can't bind to given port.
+     */
     public N4MServer(Server sprtServer, int port, int numThreads) throws SocketException {
         socket = new UDPSocketPlus(port);
         threadPool = Executors.newFixedThreadPool(numThreads);
         this.sprtServer = sprtServer;
     }
 
+    /**
+     * Listens for requests forever.
+     */
     public void go() {
         while (true) {
             try {
@@ -52,7 +71,7 @@ public class N4MServer {
         try {
             doHandlePkt(pkt);
         } catch (Throwable e) {
-            LOG.log(Level.WARNING, "Failed to handle packet", e);
+            LOG.log(Level.WARNING, "Failed to handle packet from " + pkt.getAddress(), e);
             maybeSendError(pkt, ErrorCode.SYSTEMERROR);
         }
 
@@ -75,6 +94,8 @@ public class N4MServer {
             reply(pkt, new N4MResponse(ErrorCode.BADMSG, msg.getMsgId(), 0, List.of()));
             return;
         }
+
+        LOG.fine(String.format("Business \"%s\" queried using address %s", q.getBusinessName(), pkt.getAddress()));
 
         // Send the data
         var accessCts = sprtServer.getAccessCounts();

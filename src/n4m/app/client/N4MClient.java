@@ -37,6 +37,9 @@ public class N4MClient {
         try {
             var client = new N4MClient(args[0], serverPort);
             var response = client.query(args[2]);
+            if (response.getErrorCode() != ErrorCode.NOERROR)
+                System.out.println("Non-zero error code!");
+
             System.out.println(response);
         } catch (UnknownHostException e) {
             System.err.println("Couldn't resolve server name.");
@@ -90,8 +93,9 @@ public class N4MClient {
         if (!(msg instanceof N4MResponse resp)) {
             throw new ECException("Not an N4MResponse", ErrorCode.BADMSG);
         }
+
         if (resp.getMsgId() != query.getMsgId()) {
-            throw new ECException("Incorrect message ID", ErrorCode.BADMSG);
+            System.out.println("Non-matching ID");
         }
 
         return resp;

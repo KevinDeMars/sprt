@@ -8,6 +8,12 @@
 
 package shared.app;
 
+import java.io.IOException;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+
 /**
  * Functionality common between SPRT and N4M clients and servers.
  */
@@ -37,5 +43,33 @@ public class AppUtil {
         }
 
         return x;
+    }
+
+    /**
+     * Configures logger to write to the given file in a human-readable format. Also removes
+     * logging to the console.
+     * @param log Logger to configure
+     * @param filename path to write log
+     */
+    public static void setupLogger(Logger log, String filename) {
+        try {
+            log.setLevel(Level.ALL);
+
+            // Remove default console handler
+            var defaultHandlers = Logger.getLogger("").getHandlers();
+            for (var hnd : defaultHandlers) {
+                Logger.getLogger("").removeHandler(hnd);
+            }
+
+            var hnd = new FileHandler(filename);
+            hnd.setLevel(Level.ALL);
+            hnd.setFormatter(new SimpleFormatter());
+            log.addHandler(hnd);
+
+        } catch (IOException e) {
+            System.err.println("Couldn't set up log: " + e);
+            e.printStackTrace();
+            // Continue without logging
+        }
     }
 }
