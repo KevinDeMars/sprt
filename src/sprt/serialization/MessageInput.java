@@ -195,7 +195,7 @@ public class MessageInput {
         String tok = readWhile(Util::isAlnum);
         if (tok.length() == 0) {
             String badStr = reader.peekNChars(10);
-            throw new ValidationException("Expected token, got non-token String at \"" + badStr + "\"", badStr);
+            throw new ValidationException("Expected token, got non-token String", badStr);
         }
 
         return tok;

@@ -9,7 +9,6 @@
 package sprt.app.server;
 
 import n4m.app.server.N4MServer;
-import n4m.serialization.ApplicationEntry;
 import shared.app.AppUtil;
 import sprt.serialization.*;
 
@@ -19,20 +18,19 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.util.*;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static n4m.serialization.N4MResponse.dateToTimestamp;
-import static shared.app.AppUtil.setupLogger;
+import static shared.app.AppUtil.logToFile;
 
 /**
  * Server implementing SPRT Protocol.
  */
 public class Server {
-    private static final Logger LOG = Logger.getLogger(Server.class.getName());
+    private static final Logger LOG = logToFile(Server.class, "connections.log");
     // Number of times socket.accept() is allowed to fail in a row before server gives up
     private static final int NUM_ACCEPT_TRIES = 10;
     // Time client has to send data before it gets kicked off
@@ -59,13 +57,12 @@ public class Server {
 
         int port = AppUtil.parseIntOrExit("port", args[0], 1, 65535, Error.BadArg.code);
         int numThreads = AppUtil.parseIntOrExit("numThreads", args[1], 1, Integer.MAX_VALUE, Error.BadArg.code);
-        setupLogger(LOG, "connections.log");
 
         Server sprtServer;
         N4MServer n4mServer = null;
         try {
             sprtServer = new Server(port, numThreads);
-            n4mServer = new N4MServer(sprtServer, port, numThreads);
+            n4mServer = new N4MServer(sprtServer.appStats, port, numThreads);
         } catch (IOException e) {
             LOG.log(Level.SEVERE, "I/O error creating server instance", e);
             return;
@@ -77,15 +74,9 @@ public class Server {
         sprtServer.go();
     }
 
-
-
     private final ExecutorService threadPool;
     private final ServerSocket socket;
-
-    // Tracks usages of each app
-    private final Map<ServerApp, Integer> accessCts = new HashMap<>();
-    // Timestamp last app was run
-    private long lastAppTimestamp = 0;
+    private final AppStats appStats = new AppStats();
 
     /**
      * Creates server with the given port and # threads.
@@ -155,19 +146,17 @@ public class Server {
             req = (Request) Message.decodeType(in, MessageType.Request);
         }
         catch (ValidationException e) {
-            new Response(Status.ERROR, "NULL", "Bad initial request")
+            new Response(Status.ERROR, Response.NO_NEXT_FUNCTION, "Bad initial request")
                     .encode(out);
             return;
         }
-
 
         // If app w/ given name exists, run it
         var app = getApp(req.getFunction());
         if (app.isPresent()) {
             // Run app. Send error message if ValidationException or server causes these two exceptions
             try {
-                safeIncrementCount(app.get());
-                lastAppTimestamp = dateToTimestamp(new Date());
+                appStats.appWasRun(app.get());
                 runApp(cliSock, in, out, app.get(), req);
             } catch (ValidationException e) {
                 LOG.log(Level.INFO, logPrefix(cliSock) + "Bad data: " + e.getMessage(), e);
@@ -209,7 +198,15 @@ public class Server {
 
     }
 
-    private Optional<ServerApp> getApp(String name) {
+    /**
+     * Gets the server app with the given name, if it exists.
+     *
+     * The app should be in the package sprt.app.server.apps.(name), and
+     *    the class name should be (name).
+     * @param name name of app to get
+     * @return Specified app, or Optional.empty if not found.
+     */
+    public static Optional<ServerApp> getApp(String name) {
         Class<?> clazz;
         try {
             clazz = Class.forName("sprt.app.server.apps." + name + "." + name);
@@ -233,34 +230,13 @@ public class Server {
         return Optional.of((ServerApp) instance);
     }
 
-    private void safeIncrementCount(ServerApp app) {
-        if (accessCts.containsKey(app)) {
-            int accessCt = accessCts.get(app);
-            if (accessCt < ApplicationEntry.MAX_ACCESS_COUNT)
-                ++accessCt;
-            accessCts.put(app, accessCt);
-        }
-        else {
-            accessCts.put(app, 1);
-        }
-    }
-
     /**
-     * Gets a read-only view of access counts for all apps.
-     * @return map of app => access count.
+     * Gets app usage statistics
+     * @return app stats
      */
-    public Map<ServerApp, Integer> getAccessCounts() {
-        return Collections.unmodifiableMap(accessCts);
+    public AppStats getAppStats() {
+        return appStats;
     }
-
-    /**
-     * Return timestamp of last time an app was run
-     * @return timestamp (seconds since 1970-01-01)
-     */
-    public long getLastAppTimestamp() {
-        return lastAppTimestamp;
-    }
-
 
     private static String logPrefix(Socket cliSock) {
         return cliSock.getRemoteSocketAddress() + "-" + Thread.currentThread().getId() + " ";

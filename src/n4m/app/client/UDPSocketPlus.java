@@ -51,8 +51,8 @@ public class UDPSocketPlus {
     /**
      * Convenience method that creates and sends a DatagramPacket for the data.
      * @param data data to send
-     * @param peerAddr IP address of peer
-     * @param peerPort port number of peer
+     * @param peerAddr IP address of ch
+     * @param peerPort port number of ch
      * @throws IOException if I/O error occurs
      */
     public void send(byte[] data, InetAddress peerAddr, int peerPort) throws IOException {
@@ -87,11 +87,11 @@ public class UDPSocketPlus {
     }
 
     /**
-     * Blocks and receives a packet from a specific peer containing at most maxLength bytes.
+     * Blocks and receives a packet from a specific ch containing at most maxLength bytes.
      * @param maxLength maximum size of data to receive
      * @param peerAddress expected address to receive from.
      * @return the received packet
-     * @throws IOException if I/O error occurs, or a packet from a different peer is received
+     * @throws IOException if I/O error occurs, or a packet from a different ch is received
      * @throws PacketTruncatedException if the received packet is larger than maxLength
      */
     public DatagramPacket receive(int maxLength, InetAddress peerAddress) throws IOException {
@@ -102,10 +102,10 @@ public class UDPSocketPlus {
         return pkt;
     }
     /**
-     * Blocks and receives a packet from a specific peer up to the maximum UDP segment size.
+     * Blocks and receives a packet from a specific ch up to the maximum UDP segment size.
      * @param peerAddress expected address to receive from.
      * @return received packet
-     * @throws IOException if I/O error occurs, or a packet from a different peer is received
+     * @throws IOException if I/O error occurs, or a packet from a different ch is received
      */
     public DatagramPacket receive(InetAddress peerAddress) throws IOException {
         return receive(MAX_DATAGRAM_SIZE, peerAddress);

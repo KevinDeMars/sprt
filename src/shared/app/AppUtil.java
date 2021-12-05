@@ -46,30 +46,29 @@ public class AppUtil {
     }
 
     /**
-     * Configures logger to write to the given file in a human-readable format. Also removes
-     * logging to the console.
-     * @param log Logger to configure
+     * Creates a new logger for the class that writes to the given file.
+     * @param cls Class used to set logger's name
      * @param filename path to write log
+     * @return new logger
      */
-    public static void setupLogger(Logger log, String filename) {
+    public static Logger logToFile(Class<?> cls, String filename) {
+        var log = Logger.getLogger(cls.getSimpleName());
+        log.setUseParentHandlers(false);
         try {
             log.setLevel(Level.ALL);
-
-            // Remove default console handler
-            var defaultHandlers = Logger.getLogger("").getHandlers();
-            for (var hnd : defaultHandlers) {
-                Logger.getLogger("").removeHandler(hnd);
-            }
 
             var hnd = new FileHandler(filename);
             hnd.setLevel(Level.ALL);
             hnd.setFormatter(new SimpleFormatter());
             log.addHandler(hnd);
 
+            /*var hnd2 = new ConsoleHandler();
+            hnd2.setLevel(Level.ALL);
+            log.addHandler(hnd2);*/
+
         } catch (IOException e) {
             System.err.println("Couldn't set up log: " + e);
-            e.printStackTrace();
-            // Continue without logging
         }
+        return log;
     }
 }

@@ -46,7 +46,7 @@ public record StateResult(State nextState, Response resp) {
      * @throws ValidationException if invalid data
      */
     public StateResult(State nextState, Status status, CookieList cookies) throws ValidationException {
-        this(nextState, status, "", new CookieList());
+        this(nextState, status, "", cookies);
     }
     /**
      * Transitions to the next state and returns to the client the given status.

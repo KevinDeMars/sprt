@@ -37,7 +37,7 @@ public class Parsing {
             throw new EOFException("Premature EOS when expecting string \"" + str + "\"");
         }
         if (!str.equals(read)) {
-            throw new ValidationException("Expected to get " + str + "; got " + read, read);
+            throw new ValidationException("Expected to get \"" + str + "\"", read);
         }
     }
 

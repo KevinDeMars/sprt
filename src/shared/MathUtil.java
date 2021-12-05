@@ -6,14 +6,14 @@
  *
  * ***********************************************/
 
-package n4m.app.client;
+package shared;
 
 import java.util.Random;
 
 /**
  * Contains miscellaneous methods such as RNG methods.
  */
-public class Util {
+public class MathUtil {
     private static Random rand = new Random();
 
     /**

@@ -25,7 +25,7 @@ public class TicTacToe extends ServerApp {
     public class InitialState extends State {
         @Override
         public String name() {
-            return "InitialState";
+            return "TicTacToe";
         }
 
         @Override

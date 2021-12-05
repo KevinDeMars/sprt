@@ -28,7 +28,7 @@ public class Poll extends ServerApp {
     public static class InitialStep extends State {
         @Override
         public String name() {
-            return "InitialStep";
+            return "Poll";
         }
         @Override
         public String prompt() {
@@ -129,7 +129,7 @@ public class Poll extends ServerApp {
                     repeat = Integer.parseInt(req.getCookieList().getValue("Repeat"));
                 }
                 catch (NumberFormatException e) {
-                    return StateResult.exit(Status.ERROR, "Repeat (in cookie list) must be integer", new CookieList().add("Repeat", "0"));
+                    repeat = 0;
                 }
             }
             ++repeat;

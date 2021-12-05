@@ -10,47 +10,42 @@ package n4m.app.server;
 
 import n4m.app.client.UDPSocketPlus;
 import n4m.serialization.*;
-import sprt.app.server.Server;
-import sprt.app.server.ServerApp;
+import sprt.app.server.AppStats;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.SocketException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
-import static shared.app.AppUtil.setupLogger;
+import static shared.app.AppUtil.logToFile;
+
 
 /**
  * Server implementing N4M protocol (depends on sprt server).
  */
 public class N4MServer {
-    private static final Logger LOG = Logger.getLogger(N4MServer.class.getName());
-    static {
-        setupLogger(LOG, "n4m.log");
-    }
+    private static final Logger LOG = logToFile(N4MServer.class, "n4m.log");
 
     private final UDPSocketPlus socket;
     private final ExecutorService threadPool;
-    private final Server sprtServer;
+    private final AppStats stats;
 
     /**
      * Create N4M server that responds to queries about the given sprt server.
-     * @param sprtServer Server to get usage data from
+     * @param stats AppStats object to get data from
      * @param port Port to listen for incoming requests from
      * @param numThreads maximum threads for handling N4M queries
      * @throws SocketException if can't bind to given port.
      */
-    public N4MServer(Server sprtServer, int port, int numThreads) throws SocketException {
+    public N4MServer(AppStats stats, int port, int numThreads) throws SocketException {
         socket = new UDPSocketPlus(port);
         threadPool = Executors.newFixedThreadPool(numThreads);
-        this.sprtServer = sprtServer;
+        this.stats = stats;
     }
 
     /**
@@ -98,27 +93,14 @@ public class N4MServer {
         LOG.fine(String.format("Business \"%s\" queried using address %s", q.getBusinessName(), pkt.getAddress()));
 
         // Send the data
-        var accessCts = sprtServer.getAccessCounts();
-        var entries = accessCts.entrySet().stream()
-                .map(this::mapEntryToApplicationEntry)
-                .collect(Collectors.toList());
-        reply(pkt, new N4MResponse(ErrorCode.NOERROR, q.getMsgId(), sprtServer.getLastAppTimestamp(), entries));
+        reply(pkt, new N4MResponse(ErrorCode.NOERROR, q.getMsgId(), stats.getLastAppTimestamp(), stats.getEntries()));
     }
 
     private void reply(DatagramPacket pkt, N4MResponse reply) throws IOException {
         socket.send(reply.encode(), pkt.getAddress(), pkt.getPort());
     }
 
-    private ApplicationEntry mapEntryToApplicationEntry(Map.Entry<ServerApp, Integer> entry) {
-        // App name is the name of the class of the app (e.g. sprt.app.server.apps.Poll.Poll becomes "Poll")
-        var name = entry.getKey().getClass().getSimpleName();
-        int accessCt = entry.getValue();
-        try {
-            return new ApplicationEntry(name, accessCt);
-        } catch (ECException e) {
-            throw new RuntimeException("SPRT server returned bad data, should never happen");
-        }
-    }
+
 
     // Tries to send an error. On failure, logs error and ignores it.
     private void maybeSendError(DatagramPacket pkt, ErrorCode err) {

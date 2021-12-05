@@ -9,6 +9,7 @@
 package n4m.app.client;
 
 import n4m.serialization.*;
+import shared.MathUtil;
 import shared.app.AppUtil;
 
 import java.io.IOException;
@@ -78,7 +79,7 @@ public class N4MClient {
      */
     public N4MResponse query(String businessName) throws IOException, ECException {
         // Prepare and send message
-        int msgId = Util.randomInt(0, N4MMessage.MAX_MSG_ID);
+        int msgId = MathUtil.randomInt(0, N4MMessage.MAX_MSG_ID);
         var query = new N4MQuery(msgId, businessName);
         socket.send(query.encode(), srvAddr, srvPort);
 
