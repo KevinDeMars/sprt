@@ -67,7 +67,7 @@ class ClientParseArgs {
         return port;
     }
 
-    static Socket createSocketOrExit(String host, int port, CookieList cookies) {
+    static Socket createSocketOrExit(String host, int port) {
         Socket socket = null;
         try {
             socket = new Socket(host, port);
@@ -75,7 +75,7 @@ class ClientParseArgs {
             System.err.println("Invalid or unresolvable host: " + host);
             System.exit(Client.Error.BadSocket.code);
         } catch (IOException | SecurityException e) {
-            System.err.println("Error creating socket.");
+            System.err.println("Error creating socket: " + e.getMessage());
             System.exit(Client.Error.BadSocket.code);
         }
         return socket;

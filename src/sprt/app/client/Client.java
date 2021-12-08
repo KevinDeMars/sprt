@@ -42,7 +42,7 @@ public class Client {
 
         int port = getPortNumOrExit(args[1]);
         var cookies = loadCookieListOrExit(args[2]);
-        var socket = createSocketOrExit(args[0], port, cookies);
+        var socket = createSocketOrExit(args[0], port);
         int err = 0;
         Client c = null;
 
@@ -70,13 +70,13 @@ public class Client {
     // Scanner which wraps System.in for input
     private final ClientIO console;
     // connection to server
-    private final Socket socket;
+    protected final Socket socket;
     // current cookie list
-    private final CookieList cookies;
+    protected final CookieList cookies;
     // wraps socket's input stream
-    private final MessageInput in;
+    protected final MessageInput in;
     // wraps socket's output stream
-    private final MessageOutput out;
+    protected final MessageOutput out;
 
     /**
      * Creates client with the given connection to the server and list of cookies
@@ -91,6 +91,17 @@ public class Client {
         this.cookies = new CookieList(cookies);
         in = new MessageInput(socket.getInputStream());
         out = new MessageOutput(socket.getOutputStream());
+    }
+
+    /**
+     * Creates client with a new conenction to the server and given list of cookies.
+     * @param host name or address of server
+     * @param port port number of server
+     * @param cookies initial cookie list
+     * @throws IOException if failed to connect
+     */
+    public Client(String host, int port, CookieList cookies) throws IOException {
+        this(createSocketOrExit(host, port), cookies);
     }
 
     /**
@@ -128,7 +139,6 @@ public class Client {
             if (!done)
                 params = console.readMultiTokens("");
         } while (!done);
-
     }
 
     private static void persistCookies(CookieList cookies, String path) {
